@@ -28,44 +28,51 @@ L.Icon.Default.mergeOptions({
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
-
 const studentIcon = L.icon({
   iconUrl: studentIconImg.src,
   iconSize: [40, 40],
   iconAnchor: [20, 40],
 });
 
-
 const SCHOOL: [number, number] = [10.76006, 106.68229];
 
-export default function MapClient() {
-  const [route, setRoute] = useState<[number, number][]>([]);
-  const [busPos, setBusPos] = useState({ lat: SCHOOL[0], lng: SCHOOL[1] });
-  const [studentMarkers, setStudentMarkers] = useState<
-    Array<{ name: string; pos: [number, number]; index: number }>
-  >([]);
+// Có thể nhận props: studentMarkers, busPos, route. Nếu không truyền thì giữ nguyên logic cũ.
+import React from "react";
+
+type StudentMarker = { name: string; pos: [number, number]; index: number };
+type BusPos = { lat: number; lng: number };
+
+interface MapClientProps {
+  studentMarkers?: StudentMarker[];
+  busPos?: BusPos;
+  route?: [number, number][];
+}
+
+export default function MapClient(props: MapClientProps) {
+  const [route, setRoute] = useState<[number, number][]>(props.route || []);
+  const [busPos, setBusPos] = useState<BusPos>(
+    props.busPos || { lat: SCHOOL[0], lng: SCHOOL[1] }
+  );
+  const [studentMarkers, setStudentMarkers] = useState<StudentMarker[]>(
+    props.studentMarkers || []
+  );
   const stepRef = useRef(0);
   const intervalRef = useRef<number | null>(null);
   const BUS_ID = 2; // hardcode or pass as prop
 
-  // 1. Fetch student pickup points từ backend
+  // Nếu không truyền props thì giữ nguyên logic fetch cũ
   useEffect(() => {
+    if (props.studentMarkers && props.busPos && props.route) return;
     let mounted = true;
-
     (async () => {
       try {
-        // gọi /api/realtime/2/students
-        const res = await axiosClient.get(`/api/admin/realtime/${BUS_ID}/students`);
+        const res = await axiosClient.get(
+          `/api/admin/realtime/${BUS_ID}/students`
+        );
         if (!mounted) return;
-
         const students = res?.data?.data ?? [];
-
-        // extract pickup coordinates từ response
-        const studentPointsWithNames: Array<{
-          name: string;
-          pos: [number, number];
-        }> = students
-          .map((s: any) => {
+        const studentPointsWithNames: StudentMarker[] = students
+          .map((s: any, idx: number) => {
             const pp = s?.pickup_point;
             if (!pp) return null;
             const lat = Number(pp.latitude);
@@ -74,75 +81,52 @@ export default function MapClient() {
             return {
               name: s?.student_name || `Student ${s?.student_id}`,
               pos: [lat, lng] as [number, number],
+              index: idx,
             };
           })
-          .filter(Boolean);
-        console.log("Student pickup points:", studentPointsWithNames);
-
-        setStudentMarkers(
-          studentPointsWithNames.map((sp, idx) => ({
-            ...sp,
-            index: idx,
-          }))
-        );
-
-        const studentPoints = studentPointsWithNames.map((sp) => sp.pos)
-
-        // build waypoints: SCHOOL -> students -> SCHOOL (round trip)
+          .filter(Boolean) as StudentMarker[];
+        setStudentMarkers(studentPointsWithNames);
+        const studentPoints = studentPointsWithNames.map((sp) => sp.pos);
         const waypoints: [number, number][] = [
           SCHOOL,
           ...studentPoints,
           SCHOOL,
         ];
-
-        if (waypoints.length < 2) {
-          console.warn("Not enough waypoints for routing");
-          return;
-        }
-
-        // gọi OSRM via backend proxy
+        if (waypoints.length < 2) return;
         const osrmRoute = await getRouteFromOSRM(waypoints);
         if (!mounted) return;
-
-        if (osrmRoute && osrmRoute.length > 0) {
-          setRoute(osrmRoute);
-          console.log("Route geometry received, points:", osrmRoute.length);
-        }
+        if (osrmRoute && osrmRoute.length > 0) setRoute(osrmRoute);
       } catch (err) {
         console.error("Error fetching students or route:", err);
       }
     })();
-
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [props.studentMarkers, props.busPos, props.route]);
 
-  // 2. Animate bus dọc theo route
+  // Animate bus nếu không truyền props
   useEffect(() => {
+    if (props.route && props.busPos) return;
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-
     if (route.length === 0) return;
-
     stepRef.current = 0;
     setBusPos({ lat: route[0][0], lng: route[0][1] });
-
     intervalRef.current = window.setInterval(() => {
       stepRef.current = (stepRef.current + 1) % route.length;
       const [lat, lng] = route[stepRef.current];
       setBusPos({ lat, lng });
-    }, 300); // tốc độ: ms/step
-
+    }, 300);
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
     };
-  }, [route]);
+  }, [route, props.route, props.busPos]);
 
   return (
     <div className="w-full h-[800px] rounded-2xl overflow-hidden shadow-md">
@@ -151,11 +135,9 @@ export default function MapClient() {
           attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-
         <Marker position={SCHOOL}>
           <Popup>School</Popup>
         </Marker>
-
         {studentMarkers.map((student) => (
           <Marker key={student.index} position={student.pos} icon={studentIcon}>
             <Popup>
@@ -166,9 +148,7 @@ export default function MapClient() {
             </Popup>
           </Marker>
         ))}
-
         {route.length > 0 && <Polyline positions={route} color="blue" />}
-
         <TrackingTest data={busPos} />
       </MapContainer>
     </div>

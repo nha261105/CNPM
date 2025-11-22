@@ -3,8 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 
 import supabase from "./config/supabaseClient.js";
-import { startMQTT } from "./modules/mqtt/mqtt.service.js";
-
+// import { startMQTT } from "./modules/mqtt/mqtt.service.js";
 
 import authRoutes from "./modules/auth/auth.routes.js";
 import overviewRoutes from "./modules/overview/overview.route.js";
@@ -15,12 +14,12 @@ import StudentsRoute from "./modules/students/students.router.js";
 import nofiticationRoute from "./modules/nofications/nofitications.route.js";
 import scheduleRoutes from "./modules/schedule/schedule.routes.js";
 import userRoutes from "./modules/user/user.routes.js";
-import busRoutes from "./modules/bus/bus.routes.js"
-import routeRoutes from "./modules/routes/route.routes.js"
+import busRoutes from "./modules/bus/bus.routes.js";
+import routeRoutes from "./modules/routes/route.routes.js";
 
 dotenv.config();
 
-startMQTT();
+// startMQTT();
 
 const server = express();
 const port: number | string = process.env.PORT || 5000;
@@ -40,13 +39,13 @@ server.get("/api/health", (req, res) => {
 server.use("/api/tracking", trackingRoutes);
 
 // ------------------- ADMIN ROUTE --------------------------
-server.use("/api/admin/overview",overviewRoutes);
-server.use("/api/admin/realtime" ,realtimeRoutes);
-server.use("/api/admin/nofitications",nofiticationRoute);
+server.use("/api/admin/overview", overviewRoutes);
+server.use("/api/admin/realtime", realtimeRoutes);
+server.use("/api/admin/nofitications", nofiticationRoute);
 server.use("/api/schedule", scheduleRoutes);
-server.use("/api/users", userRoutes)
-server.use("/api/bus", busRoutes)
-server.use("/api/routes", routeRoutes)
+server.use("/api/users", userRoutes);
+server.use("/api/bus", busRoutes);
+server.use("/api/routes", routeRoutes);
 
 // ------------------- DRIVER ROUTE --------------------------
 server.use("/api", StudentsRoute);
