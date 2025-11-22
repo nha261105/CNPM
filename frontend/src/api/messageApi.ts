@@ -16,6 +16,7 @@ export class MessageApi {
                 message: message
             });
             return res.data;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
             if(error.response && !error.response.ok) throw new Error(error.response.data.error)
         }

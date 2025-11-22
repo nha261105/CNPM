@@ -14,6 +14,8 @@ import axiosClient from "@/lib/axiosClient";
 import TrackingTest from "./TrackingTest";
 import { getRouteFromOSRM } from "@/lib/osrm";
 import studentIconImg from "../../../public/icon/student.png";
+import { useBusRealtime } from "@/hooks/useBusRealTime";
+import { Dot } from "lucide-react";
 
 // Fix default icon
 delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: string })
@@ -36,6 +38,7 @@ const studentIcon = L.icon({
 
 const SCHOOL: [number, number] = [10.76006, 106.68229];
 
+<<<<<<< HEAD
 // Có thể nhận props: studentMarkers, busPos, route. Nếu không truyền thì giữ nguyên logic cũ.
 import React from "react";
 
@@ -59,6 +62,25 @@ export default function MapClient(props: MapClientProps) {
   const stepRef = useRef(0);
   const intervalRef = useRef<number | null>(null);
   const BUS_ID = 2; // hardcode or pass as prop
+=======
+export default function MapClient() {
+  const [route, setRoute] = useState<[number, number][]>([]);
+  const [studentMarkers, setStudentMarkers] = useState<
+    Array<{ name: string; pos: [number, number]; index: number }>
+  >([]);
+  const [simPos, setSimPos] = useState<{ lat: number; lng: number } | null>(
+    null
+  );
+  const BUS_ID = 2;
+
+  const realtimePos = useBusRealtime(BUS_ID);
+
+  const busCurrentPos = realtimePos
+    ? { lat: realtimePos.latitude, lng: realtimePos.longitude }
+    : simPos
+    ? simPos
+    : { lat: SCHOOL[0], lng: SCHOOL[1] };
+>>>>>>> dev
 
   // Nếu không truyền props thì giữ nguyên logic fetch cũ
   useEffect(() => {
@@ -71,8 +93,17 @@ export default function MapClient(props: MapClientProps) {
         );
         if (!mounted) return;
         const students = res?.data?.data ?? [];
+<<<<<<< HEAD
         const studentPointsWithNames: StudentMarker[] = students
           .map((s: any, idx: number) => {
+=======
+
+        const studentPointsWithNames: Array<{
+          name: string;
+          pos: [number, number];
+        }> = students
+          .map((s: any) => {
+>>>>>>> dev
             const pp = s?.pickup_point;
             if (!pp) return null;
             const lat = Number(pp.latitude);
@@ -84,15 +115,39 @@ export default function MapClient(props: MapClientProps) {
               index: idx,
             };
           })
+<<<<<<< HEAD
           .filter(Boolean) as StudentMarker[];
         setStudentMarkers(studentPointsWithNames);
         const studentPoints = studentPointsWithNames.map((sp) => sp.pos);
+=======
+          .filter(Boolean);
+        console.log("Student pickup points:", studentPointsWithNames);
+
+        setStudentMarkers(
+          studentPointsWithNames.map((sp, idx) => ({
+            ...sp,
+            index: idx,
+          }))
+        );
+
+        const studentPoints = studentPointsWithNames.map((sp) => sp.pos);
+
+>>>>>>> dev
         const waypoints: [number, number][] = [
           SCHOOL,
           ...studentPoints,
           SCHOOL,
         ];
+<<<<<<< HEAD
         if (waypoints.length < 2) return;
+=======
+
+        if (waypoints.length < 2) {
+          console.warn("Not enough waypoints for routing");
+          return;
+        }
+
+>>>>>>> dev
         const osrmRoute = await getRouteFromOSRM(waypoints);
         if (!mounted) return;
         if (osrmRoute && osrmRoute.length > 0) setRoute(osrmRoute);
@@ -105,6 +160,7 @@ export default function MapClient(props: MapClientProps) {
     };
   }, [props.studentMarkers, props.busPos, props.route]);
 
+<<<<<<< HEAD
   // Animate bus nếu không truyền props
   useEffect(() => {
     if (props.route && props.busPos) return;
@@ -120,16 +176,64 @@ export default function MapClient(props: MapClientProps) {
       const [lat, lng] = route[stepRef.current];
       setBusPos({ lat, lng });
     }, 300);
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
+=======
+  // 2. TỰ ĐỘNG chạy khi có route
+  useEffect(() => {
+    if (route.length === 0) return;
+
+    let currentIndex = 0;
+    let t = 0;
+    const lastUpdatePosFromBackend = Date.now();
+
+    const interval = setInterval(async () => {
+      if (currentIndex >= route.length - 1) {
+        currentIndex = 0;
+        t = 0;
       }
+
+      const p1 = route[currentIndex];
+      const p2 = route[currentIndex + 1];
+
+      const lat = p1[0] + (p2[0] - p1[0]) * t;
+      const lng = p1[1] + (p2[1] - p1[1]) * t;
+
+      setSimPos({ lat, lng });
+      const now = Date.now();
+      if (now - lastUpdatePosFromBackend >= 3000) {
+        console.log(
+          `vi tri xe bus hien tai: [${lat.toFixed(6)}, ${lng.toFixed(6)}]`
+        );
+        try {
+          await axiosClient.post("/api/tracking", {
+            bus_id: BUS_ID,
+            latitude: lat,
+            longitude: lng,
+            timestamp: new Date().toISOString(),
+          });
+        } catch (err) {
+          console.error("Auto-simulator error:", err);
+        }
+      }
+      t += 0.05;
+      if (t >= 1) {
+        t = 0;
+        currentIndex++;
+      }
+    }, 50);
+
+>>>>>>> dev
+    return () => {
+      console.log(" Stopping auto GPS simulator");
+      clearInterval(interval);
     };
+<<<<<<< HEAD
   }, [route, props.route, props.busPos]);
+=======
+  }, [route, BUS_ID]);
+>>>>>>> dev
 
   return (
-    <div className="w-full h-[800px] rounded-2xl overflow-hidden shadow-md">
+    <div className="relative w-full h-[800px] rounded-2xl overflow-hidden shadow-md">
       <MapContainer center={SCHOOL} zoom={14} className="h-full w-full">
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
@@ -149,8 +253,46 @@ export default function MapClient(props: MapClientProps) {
           </Marker>
         ))}
         {route.length > 0 && <Polyline positions={route} color="blue" />}
+<<<<<<< HEAD
         <TrackingTest data={busPos} />
+=======
+
+        <TrackingTest data={busCurrentPos} timestamp={realtimePos?.timestamp} />
+>>>>>>> dev
       </MapContainer>
+
+      <div className="absolute top-4 right-4 bg-white/95 p-4 rounded shadow-lg z-[1000] max-w-xs">
+        <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
+          <span className={realtimePos ? "text-green-500" : "text-red-500"}>
+            <Dot />
+          </span>
+          Realtime (Bus {BUS_ID})
+        </h3>
+        {realtimePos ? (
+          <div className="text-xs space-y-1">
+            <div className="flex justify-between">
+              <span className="text-gray-600">Lat:</span>
+              <span className="font-mono">
+                {realtimePos.latitude.toFixed(6)}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Lng:</span>
+              <span className="font-mono">
+                {realtimePos.longitude.toFixed(6)}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Timestamp:</span>
+              <span className="font-mono text-[10px]">
+                {new Date(realtimePos.timestamp).toLocaleTimeString()}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="text-xs text-gray-500">Đang chờ dữ liệu...</div>
+        )}
+      </div>
     </div>
   );
 }

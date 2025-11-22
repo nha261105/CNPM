@@ -74,6 +74,7 @@ export default function ManagerRoutes() {
   //     status: true,
   //   },
   // ];
+
   const [routes, setRoutes] = useState<any[]>([]);
 
   const fetchRoutes = async () => {
@@ -126,8 +127,6 @@ export default function ManagerRoutes() {
                   <TableHead>Name</TableHead>
                   <TableHead>Stops</TableHead>
                   <TableHead>Students</TableHead>
-                  <TableHead>Driver</TableHead>
-                  <TableHead>Bus</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -140,8 +139,6 @@ export default function ManagerRoutes() {
                     <TableCell>{route.route_name}</TableCell>
                     <TableCell>{route.total_points}</TableCell>
                     <TableCell>{route.total_students}</TableCell>
-                    <TableCell>Messi</TableCell>
-                    <TableCell>None</TableCell>
                     <TableCell>
                       <Badge
                         variant={"secondary"}

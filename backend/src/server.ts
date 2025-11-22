@@ -4,6 +4,10 @@ import dotenv from "dotenv";
 
 import supabase from "./config/supabaseClient.js";
 // import { startMQTT } from "./modules/mqtt/mqtt.service.js";
+<<<<<<< HEAD
+=======
+
+>>>>>>> dev
 
 import authRoutes from "./modules/auth/auth.routes.js";
 import overviewRoutes from "./modules/overview/overview.route.js";

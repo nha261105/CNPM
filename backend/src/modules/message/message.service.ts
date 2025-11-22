@@ -51,7 +51,7 @@ export const MessageService = {
         message_content,
         send_time,
         sender_id(type_user!type_user_id(type_user_id, type_user_name), account!user_id(user_id, user_name)),
-        receiver_id(type_user!type_user_id(type_user_id, type_user_name), account!user_id(user_id, user_name)),
+        receiver_id(type_user!type_user_id(type_user_id, type_user_name), account!user_id(user_id, user_name))
         `
         );
       if (error) return { success: false, message: error };

@@ -8,9 +8,9 @@ export const MessageController = {
             if(!idParent) return res.status(400).json({ ok: false, error: "idParent is required" });
             const data = await MessageService.getMessageByIdParent(idParent);
             return res.json({ok: true, data})
-        } catch (err) {
-            console.error("Get message: ", err)
-            return res.status(500).json({ok: false, error: "Failed to get Message"})
+        } catch (error) {
+            const err = error as Error
+            return res.status(500).json({ok: false, error: err.message})
         }
     },
 
@@ -21,9 +21,9 @@ export const MessageController = {
             if(!message || message === "") return res.status(400).json({ ok: false, error: "Message mustn't empty!" });
             const data = await MessageService.sendMessageToAdminByIdParent(idParent, message);
             return res.json({ok: true, data})
-        } catch (err) { 
-            console.error("Get message: ", err)
-            return res.status(500).json({ok: false, error: "Failed to get Message"})
+        } catch (error) { 
+            const err = error as Error
+            return res.status(500).json({ok: false, error: err.message})
         }
     }
 }
