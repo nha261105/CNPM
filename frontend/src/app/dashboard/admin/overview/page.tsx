@@ -15,7 +15,7 @@ export default function Overview() {
   });
 
   useEffect(() => {
-    axiosClient.get("/api/overview").then((res) => {
+    axiosClient.get("/api/admin/overview/card").then((res) => {
       if(res.data.ok) {
         setOverview(res.data.data)
       }

@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import overviewService from "./overview.service.js";
 import { error } from "console";
 
-export async function getOverview(req: Request, res: Response) {
+export async function getCardInOverview(req: Request, res: Response) {
     try {
         const data = await overviewService();
         return res.json({ok: true, data})

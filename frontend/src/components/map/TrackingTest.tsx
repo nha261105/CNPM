@@ -28,7 +28,7 @@ export default function TrackingTest({
       icon={busIcon}
       position={[lat, lng]}
       previousPosition={prevPos}
-      duration={1000}
+      duration={500}
     />
   );
 }

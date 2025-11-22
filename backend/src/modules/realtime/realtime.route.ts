@@ -3,13 +3,13 @@ import { createTracking,getCurrentPositionHandler,getAllCurrentPositionsHandler,
 
 const router = Router()
 
-router.put("/realtime",createTracking)
+router.put("/",createTracking)
 
-router.get("/realtime/:busId/current", getCurrentPositionHandler)
+router.get("/:busId/current", getCurrentPositionHandler)
 
-router.get("/realtime/all", getAllCurrentPositionsHandler)
+router.get("/all", getAllCurrentPositionsHandler)
 
-router.get("/realtime/:busId/students", getStudentInRouteHandler)
+router.get("/:busId/students", getStudentInRouteHandler)
 
 
 export default router;

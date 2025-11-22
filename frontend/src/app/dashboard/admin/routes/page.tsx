@@ -13,66 +13,84 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import RouteDialog from "./RouteDialog";
+import { routeService } from "@/service/route.service";
 
 export default function ManagerRoutes() {
-  const routes = [
-    {
-      id: 1,
-      name: "Route A",
-      stops: 8,
-      students: 42,
-      driver: "John Smith",
-      bus: "BUS001",
-      status: true,
-    },
-    {
-      id: 2,
-      name: "Route B",
-      stops: 12,
-      students: 32,
-      driver: "Negav",
-      bus: "BUS002",
-      status: true,
-    },
-    {
-      id: 3,
-      name: "Route C",
-      stops: 8,
-      students: 47,
-      driver: "King Von",
-      bus: "BUS003",
-      status: false,
-    },
-    {
-      id: 4,
-      name: "Route D",
-      stops: 5,
-      students: 32,
-      driver: "Naruto Baco",
-      bus: "BUS004",
-      status: false,
-    },
-    {
-      id: 5,
-      name: "Route E",
-      stops: 8,
-      students: 42,
-      driver: "John Smith",
-      bus: "BUS005",
-      status: true,
-    },
-    {
-      id: 6,
-      name: "Route F",
-      stops: 3,
-      students: 10,
-      driver: "Ronaldo",
-      bus: "BUS006",
-      status: true,
-    },
-  ];
+  // const routes = [
+  //   {
+  //     id: 1,
+  //     name: "Route A",
+  //     stops: 8,
+  //     students: 42,
+  //     driver: "John Smith",
+  //     bus: "BUS001",
+  //     status: true,
+  //   },
+  //   {
+  //     id: 2,
+  //     name: "Route B",
+  //     stops: 12,
+  //     students: 32,
+  //     driver: "Negav",
+  //     bus: "BUS002",
+  //     status: true,
+  //   },
+  //   {
+  //     id: 3,
+  //     name: "Route C",
+  //     stops: 8,
+  //     students: 47,
+  //     driver: "King Von",
+  //     bus: "BUS003",
+  //     status: false,
+  //   },
+  //   {
+  //     id: 4,
+  //     name: "Route D",
+  //     stops: 5,
+  //     students: 32,
+  //     driver: "Naruto Baco",
+  //     bus: "BUS004",
+  //     status: false,
+  //   },
+  //   {
+  //     id: 5,
+  //     name: "Route E",
+  //     stops: 8,
+  //     students: 42,
+  //     driver: "John Smith",
+  //     bus: "BUS005",
+  //     status: true,
+  //   },
+  //   {
+  //     id: 6,
+  //     name: "Route F",
+  //     stops: 3,
+  //     students: 10,
+  //     driver: "Ronaldo",
+  //     bus: "BUS006",
+  //     status: true,
+  //   },
+  // ];
+
+  const [routes, setRoutes] = useState<any[]>([]);
+
+  const fetchRoutes = async () => {
+    try {
+      const data = await routeService.getRoutes();
+      console.log(data);
+      setRoutes(data);
+    } catch (error) {
+      console.error("Failed to fetch routes:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchRoutes();
+  }, []);
+
   const [dialog, setDialog] = useState<{
     open: boolean;
     mode: "add" | "edit" | "read";
@@ -109,8 +127,6 @@ export default function ManagerRoutes() {
                   <TableHead>Name</TableHead>
                   <TableHead>Stops</TableHead>
                   <TableHead>Students</TableHead>
-                  <TableHead>Driver</TableHead>
-                  <TableHead>Bus</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -118,13 +134,11 @@ export default function ManagerRoutes() {
 
               <TableBody>
                 {routes.map((route) => (
-                  <TableRow key={route.id}>
-                    <TableCell>{route.id}</TableCell>
-                    <TableCell>{route.name}</TableCell>
-                    <TableCell>{route.stops}</TableCell>
-                    <TableCell>{route.students}</TableCell>
-                    <TableCell>{route.driver}</TableCell>
-                    <TableCell>{route.bus}</TableCell>
+                  <TableRow key={route.route_id}>
+                    <TableCell>{route.route_id}</TableCell>
+                    <TableCell>{route.route_name}</TableCell>
+                    <TableCell>{route.total_points}</TableCell>
+                    <TableCell>{route.total_students}</TableCell>
                     <TableCell>
                       <Badge
                         variant={"secondary"}

@@ -25,46 +25,32 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import UserDialog from "./UserDialog";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+// import { User } from "@/types/auth";
+import { userService } from "@/service/users.service";
+import { User as UserType } from "@/service/users.service";
 
 export default function ManagerUsers() {
-  const users = [
-    {
-      id: 1,
-      name: "Nguyễn Hoàng Anh",
-      role: "Driver",
-      email: "Nasaaaa@ssb.com",
-      status: true,
-    },
-    {
-      id: 2,
-      name: "Huỳnh Thanh Hải",
-      role: "Parent",
-      email: "hai@ssb.com",
-      status: true,
-    },
-    {
-      id: 3,
-      name: "Nguyễn Thanh Nhàn",
-      role: "Driver",
-      email: "nhan@ssb.com",
-      status: false,
-    },
-    {
-      id: 4,
-      name: "Nguyễn Âu Gia Bảo",
-      role: "Parent",
-      email: "bao@ssb.com",
-      status: false,
-    },
-    {
-      id: 5,
-      name: "Lê Mạnh Cường",
-      role: "Parent",
-      email: "cuong@ssb.com",
-      status: true,
-    },
-  ];
+  const [users, setUsers] = useState<UserType[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchType, setSearchType] = useState('all');
+
+  const fetchUsers = async () => {
+    try {
+      const response = await userService.getUsers();
+      setUsers(response);
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+    }
+  };
+
+  const getConvertedStatus = (status: string) => {
+    return status == "active" ? "Active" : "Inactive";
+  }
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   const [dialog, setDialog] = useState<{
     open: boolean;
@@ -76,6 +62,16 @@ export default function ManagerUsers() {
   const handleClose = (open: boolean) => {
     setDialog((prev) => ({ ...prev, open }));
   };
+
+  const filteredUsers = users.filter((user) => {
+    const user_name = user.name ? user.name.toLowerCase() : '';
+    const user_email = user.email ? user.email.toLowerCase() : '';
+    const matchesSearch = user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user_email.toLowerCase().includes(searchTerm.toLowerCase()); 
+    const matchesType = searchType === 'all' || user.type_user_name === searchType;
+    return matchesSearch && matchesType;
+  })
+
   return (
     <div className="flex-1 overflow-y-auto p-8">
       <div className="space-y-6">
@@ -88,6 +84,7 @@ export default function ManagerUsers() {
                   <InputGroupInput
                     placeholder="Tìm kiếm theo...."
                     className="focus:outline-none focus:border-none w-96"
+                    onChange={(e) => setSearchTerm(e.target.value)}
                   />
                   <InputGroupAddon align={"inline-end"}>
                     <InputGroupButton
@@ -100,7 +97,7 @@ export default function ManagerUsers() {
                 </InputGroup>
 
                 <div>
-                  <Select>
+                  <Select value={searchType} onValueChange={setSearchType}>
                     <SelectTrigger className="w-[180px] bg-gray-50 border-gray-100 rounded-lg shadow-sm transition-all duration-200 hover:border-gray-200">
                       <SelectValue placeholder="Chọn vai trò" />
                     </SelectTrigger>
@@ -133,17 +130,17 @@ export default function ManagerUsers() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
+                {filteredUsers.map((user) => (
+                  <TableRow key={user.user_id}>
                     <TableCell>{user.name}</TableCell>
-                    <TableCell>{user.role}</TableCell>
+                    <TableCell>{user.type_user_name}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
                       <Badge
                         variant={"secondary"}
-                        className={user.status ? "bg-green-400" : "bg-gray-400"}
+                        className={getConvertedStatus(user.account_status) ? "bg-green-400" : "bg-gray-400"}
                       >
-                        {user.status ? "Active" : "Inactive"}
+                        {getConvertedStatus(user.account_status) ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
                     <TableCell className="flex gap-2">
@@ -174,6 +171,7 @@ export default function ManagerUsers() {
         open={dialog.open}
         mode={dialog.mode}
         onOpenChange={handleClose}
+        onSuccess={fetchUsers}
       />
     </div>
   );

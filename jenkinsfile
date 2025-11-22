@@ -15,7 +15,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                echo '📥 Checking out code from GitHub...'
+                echo 'Checking out code from GitHub...'
                 checkout scm
                 
                 script {
@@ -32,7 +32,7 @@ pipeline {
                 stage('Backend Dependencies') {
                     steps {
                         dir('backend') {
-                            echo '📦 Installing backend dependencies...'
+                            echo 'Installing backend dependencies...'
                             sh '''
                                 which node || echo "Node.js not found"
                                 node --version
@@ -45,7 +45,7 @@ pipeline {
                 stage('Frontend Dependencies') {
                     steps {
                         dir('frontend') {
-                            echo '📦 Installing frontend dependencies...'
+                            echo 'Installing frontend dependencies...'
                             sh '''
                                 which node || echo "Node.js not found"
                                 node --version
@@ -63,16 +63,16 @@ pipeline {
                 stage('Lint Backend') {
                     steps {
                         dir('backend') {
-                            echo '🔍 Linting backend code...'
-                            sh 'npm run lint || echo "⚠️ Backend linting issues found (non-blocking)"'
+                            echo 'Linting backend code...'
+                            sh 'npm run lint || echo "Backend linting issues found (non-blocking)"'
                         }
                     }
                 }
                 stage('Lint Frontend') {
                     steps {
                         dir('frontend') {
-                            echo '🔍 Linting frontend code...'
-                            sh 'npm run lint || echo "⚠️ Frontend linting issues found (non-blocking)"'
+                            echo 'Linting frontend code...'
+                            sh 'npm run lint || echo "Frontend linting issues found (non-blocking)"'
                         }
                     }
                 }
@@ -84,7 +84,7 @@ pipeline {
                 stage('Build Backend') {
                     steps {
                         dir('backend') {
-                            echo '🏗️ Building backend...'
+                            echo 'Building backend...'
                             sh 'npm run build'
                             
                             // Verify build output
@@ -95,7 +95,7 @@ pipeline {
                 stage('Build Frontend') {
                     steps {
                         dir('frontend') {
-                            echo '🏗️ Building frontend...'
+                            echo 'Building frontend...'
                             sh 'npm run build'
                             
                             // Verify build output
@@ -111,7 +111,7 @@ pipeline {
                 stage('Test Backend') {
                     steps {
                         dir('backend') {
-                            echo '🧪 Running backend tests...'
+                            echo 'Running backend tests...'
                             sh '''
                                 if [ -f "package.json" ] && grep -q '"test"' package.json; then
                                     npm test || echo "Tests failed or not configured"
@@ -125,7 +125,7 @@ pipeline {
                 stage('Test Frontend') {
                     steps {
                         dir('frontend') {
-                            echo '🧪 Running frontend tests...'
+                            echo 'Running frontend tests...'
                             sh '''
                                 if [ -f "package.json" ] && grep -q '"test"' package.json; then
                                     npm test || echo "Tests failed or not configured"
@@ -141,7 +141,7 @@ pipeline {
         
         stage('Security Scan') {
             steps {
-                echo '🔒 Running security audit...'
+                echo 'Running security audit...'
                 script {
                     // Backend security scan
                     dir('backend') {
@@ -162,7 +162,7 @@ pipeline {
             }
             steps {
                 script {
-                    echo '🐳 Docker build disabled - needs configuration'
+                    echo 'Docker build disabled - needs configuration'
                 }
             }
         }
@@ -173,7 +173,7 @@ pipeline {
             }
             steps {
                 script {
-                    echo '🐳 Docker push disabled - needs credentials'
+                    echo 'Docker push disabled - needs credentials'
                 }
             }
         }
@@ -186,7 +186,7 @@ pipeline {
                 }
             }
             steps {
-                echo '🚀 Deploying to development environment...'
+                echo ' Deploying to development environment...'
                 sh '''
                     docker compose -f docker-compose.dev.yml down || true
                     docker compose -f docker-compose.dev.yml up -d
@@ -205,7 +205,7 @@ pipeline {
                 branch 'main'
             }
             steps {
-                echo '🚀 Deploying to staging environment...'
+                echo ' Deploying to staging environment...'
                 sh '''
                     docker compose -f docker-compose.dev.yml down || true
                     docker compose -f docker-compose.dev.yml up -d
@@ -229,7 +229,7 @@ pipeline {
             }
             steps {
                 script {
-                    echo '⏳ Waiting for production deployment approval...'
+                    echo 'Waiting for production deployment approval...'
                     
                     timeout(time: 30, unit: 'MINUTES') {
                         input message: 'Deploy to Production?', 
@@ -245,7 +245,7 @@ pipeline {
                 branch 'main'
             }
             steps {
-                echo '🚀 Deploying to production environment...'
+                echo 'Deploying to production environment...'
                 script {
                     // Add your production deployment commands here
                     echo 'Production deployment steps would go here'
@@ -267,7 +267,7 @@ pipeline {
                 }
             }
             steps {
-                echo '🧪 Running smoke tests...'
+                echo 'Running smoke tests...'
                 script {
                     sh '''
                         # Wait for services to be ready
@@ -275,10 +275,10 @@ pipeline {
                         sleep 10
                         
                         # Test backend health
-                        curl -f http://localhost:5000/health || echo "⚠️ Backend health check failed (service might not be fully ready)"
+                        curl -f http://localhost:5000/health || echo " Backend health check failed (service might not be fully ready)"
                         
                         # Test frontend
-                        curl -f http://localhost:3000 || echo "⚠️ Frontend check failed (service might not be fully ready)"
+                        curl -f http://localhost:3000 || echo " Frontend check failed (service might not be fully ready)"
                         
                         # Check Jenkins itself
                         curl -f http://localhost:8081 || echo "Jenkins is running on port 8081"
@@ -290,7 +290,7 @@ pipeline {
     
     post {
         always {
-            echo '🧹 Cleaning up...'
+            echo ' Cleaning up...'
             
             // Archive build artifacts
             script {
@@ -308,19 +308,19 @@ pipeline {
         }
         
         success {
-            echo '✅ Pipeline succeeded!'
+            echo 'Pipeline succeeded!'
         }
         
         failure {
-            echo '❌ Pipeline failed!'
+            echo 'Pipeline failed!'
         }
         
         unstable {
-            echo '⚠️  Pipeline unstable!'
+            echo 'Pipeline unstable!'
         }
         
         aborted {
-            echo '🛑 Pipeline aborted!'
+            echo 'Pipeline aborted!'
         }
     }
 }

@@ -1,156 +1,276 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectItem, SelectTrigger,SelectContent,SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectItem,
+  SelectTrigger,
+  SelectContent,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Bell, Send } from "lucide-react";
+import { adminNofitication } from "@/api/adminNofitications";
 
-export default function nofitications() {
-  const nofitication_receive = [
-    {
-      id: 1,
-      role: "Driver",
-      name_from: "John Smith",
-      new: true,
-      description: "Tuyến A đã hoàn thành",
-      time: "10 phút trước",
-      type: false
-    },
-    {
-      id: 2,
-      role: "Parent",
-      name_from: "Naruto",
-      new: true,
-      description: "Yêu cầu thay đổi địa điểm đón sasuke",
-      time: "20 phút trước",
-      type: false,
-    },
-    {
-      id: 3,
-      role: "Driver",
-      name_from: "IshowSpeed",
-      new: false,
-      description: "Tuyến B sẽ bị delay do tắc đường",
-      time: "1 tiếng trước",
-      type: true
-    },
-    {
-      id: 4,
-      role: "Parent",
-      name_from: "Ronaldo",
-      new: true,
-      description: "Trẻ em messi hôm nay vắng mặt.Vui lòng xóa khỏi lịch trình",
-      time: "2 giờ trước",
-      type: false,
-    },
-  ];
+type User = {
+  id: number;
+  name: string;
+  role: string;
+};
 
-  const changeBgForTypeNofitication = (role: string, type: boolean) => {
-        switch(type) {
-            case true:
-                return "bg-yellow-100 border-l-4 border-l-yellow-500";
-            case false:
-                if(role === "Driver") {
-                    return "bg-green-100 border-l-4 border-l-green-500";
-                } else if(role === "Parent") {
-                    return "bg-blue-100 border-l-4 border-l-blue-500";
-                } else {
-                    return "bg-gray-100 border-l-4 border-l-gray-500";
-                }
-            default:
-                return "bg-gray-100 border-l-4 border-l-gray-500"; 
-        }
+type Message = {
+  message_id: number;
+  message_content: string;
+  send_time: string;
+  sender_id: {
+    account: { user_id: number; user_name: string }[];
+    type_user: { type_user_name: string };
+  };
+  receiver_id: {
+    account: { user_id: number; user_name: string }[];
+    type_user?: { type_user_name: string };
+  };
+};
+
+export default function AdminNofitications() {
+  const [userAdmin, setUserAdmin] = useState<User>();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [messageContent, setMessageContent] = useState("");
+  const [recipientType, setRecipientType] = useState("");
+
+  useEffect(() => {
+    const raw = localStorage.getItem("user");
+    if (raw) {
+      setUserAdmin(JSON.parse(raw));
+    }
+  }, []);
+
+  const {
+    data: messageData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["admin-messages", userAdmin?.id],
+    queryFn: async () => {
+      if (!userAdmin) return [];
+      const res = await adminNofitication.getAllMessageWhileSendApi(
+        userAdmin.id
+      );
+      if (res.ok) return (res.data || []) as Message[];
+      throw new Error(res.message || "Fetch messages failed");
+    },
+    enabled: !!userAdmin,
+  });
+
+  useEffect(() => {
+    if (messageData) setMessages(messageData);
+  }, [messageData]);
+
+  async function sendMessage() {
+    if (!messageContent.trim()) return alert("Vui lòng nhập nội dung");
+    if (!recipientType) return alert("Chọn người nhận");
+    if (!userAdmin) return;
+
+    let res;
+    if (recipientType === "driver") {
+      res = await adminNofitication.sendMessageFromAdminToDriverApi(
+        userAdmin.id,
+        messageContent.trim()
+      );
+    } else {
+      res = await adminNofitication.sendMessageFromAdminToParentApi(
+        userAdmin.id,
+        messageContent.trim()
+      );
+    }
+
+    if (res.ok) {
+      alert("Gửi thành công");
+      setMessageContent("");
+      setRecipientType("");
+      refetch();
+    } else {
+      alert(res.message || "Gửi thất bại");
+    }
   }
 
-  return (
-    <div className="flex-1 overflow-y-auto p-8">
-      <div className="space-y-6">
-        <Card className="border-gray-300">
-          <CardHeader>
-            <CardTitle>Thông báo</CardTitle>
-          </CardHeader>
+  function bgByRole(role: string, isSender: boolean) {
+    if (isSender) {
+      return role === "driver"
+        ? "bg-green-100 border-l-4 border-l-green-500"
+        : "bg-blue-100 border-l-4 border-l-blue-500";
+    }
+    return role === "parent"
+      ? "bg-yellow-100 border-l-4 border-l-yellow-500"
+      : "bg-purple-100 border-l-4 border-l-purple-500";
+  }
 
-          <CardContent className="flex w-full flex-col gap-6">
-            <Tabs defaultValue="receive">
-              <TabsList className="bg-gray-300 w-full rounded-3xl h-12 item-center justify-center grid grid-cols-2">
-                <TabsTrigger
-                  value="receive"
-                  className="data-[state=active]:bg-white data-[state=active]:rounded-3xl"
-                >
-                  Thông báo đến
-                </TabsTrigger>
-                <TabsTrigger
-                  value="send"
-                  className="data-[state=active]:bg-gray-200 data-[state=active]:rounded-3xl"
-                >
-                  Gửi thông báo
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="receive" className="mt-10">
-                <div className="space-y-5">
-                  {nofitication_receive.map((rei) => (
-                    <div key={rei.id} className={`flex justify-between w-full p-5 rounded-2xl ${changeBgForTypeNofitication(rei.role,rei.type)}`}>
+  function formatTime(dateString: string) {
+    const date = new Date(dateString);
+    const diff = (Date.now() - date.getTime()) / 1000;
+    if (diff < 60) return `${Math.floor(diff)} giây trước`;
+    if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} giờ trước`;
+    return date.toLocaleString("vi-VN");
+  }
+
+  if (isLoading) return <p className="p-8">Đang tải...</p>;
+  if (error)
+    return <p className="p-8 text-red-500">Lỗi: {(error as any).message}</p>;
+
+  return (
+    <div className="flex-1 p-8">
+      <Card>
+        <CardHeader>
+          <CardTitle>Thông báo</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="receive">
+            <TabsList className="grid grid-cols-2 w-full rounded-3xl bg-gray-300 h-12">
+              <TabsTrigger
+                value="receive"
+                className="data-[state=active]:bg-white data-[state=active]:rounded-3xl"
+              >
+                Thông báo đến
+              </TabsTrigger>
+              <TabsTrigger
+                value="send"
+                className="data-[state=active]:bg-gray-200 data-[state=active]:rounded-3xl"
+              >
+                Gửi thông báo
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="receive" className="mt-8 space-y-5">
+              {messages
+                .filter(
+                  (m) => m.receiver_id?.account?.[0]?.user_id === userAdmin?.id
+                )
+                .map((m) => {
+                  const senderName =
+                    m.sender_id?.account?.[0]?.user_name || "Unknown";
+                  const senderRole =
+                    m.sender_id?.type_user?.type_user_name || "Unknown";
+                  return (
+                    <div
+                      key={m.message_id}
+                      className={`flex justify-between p-5 rounded-2xl ${bgByRole(
+                        senderRole,
+                        false
+                      )}`}
+                    >
                       <div className="space-y-2">
-                        <div className="flex text-nowrap item-center gap-2">
+                        <div className="flex items-center gap-2">
                           <Bell />
                           <span>
-                            Từ {rei.role} - {rei.name_from}
+                            Từ {senderRole} - {senderName}
                           </span>
-                          <span>
-                            {rei.new === true ? (
-                              <Badge className="text-white font-bold bg-red-500">
-                                new
-                              </Badge>
-                            ) : (
-                              <Badge className="text-white font-bold bg-gray-600">
-                                old
-                              </Badge>
-                            )}
-                          </span>
+                          <Badge className="bg-blue-500">new</Badge>
                         </div>
-                        <p>{rei.description}</p>
-                        <span>{rei.time}</span>
+                        <p>{m.message_content}</p>
+                        <span className="text-sm text-gray-600">
+                          {formatTime(m.send_time)}
+                        </span>
                       </div>
-                      <Button className="bg-white border border-gray-200 font-bold cursor-pointer text-black  hover:bg-green-400 hover:text-white hover:border-green-100">Đã xác nhận</Button>
+                      <Button className="bg-white text-black border hover:bg-green-400 hover:text-white">
+                        Đã xác nhận
+                      </Button>
                     </div>
-                  ))}
+                  );
+                })}
+
+              {messages.filter(
+                (m) => m.receiver_id?.account?.[0]?.user_id === userAdmin?.id
+              ).length === 0 && (
+                <div className="text-center text-gray-500 py-8">
+                  Chưa có thông báo nào
                 </div>
-              </TabsContent>
+              )}
+            </TabsContent>
 
-              <TabsContent value="send">
-                <div className="space-y-5 w-full mt-3">
-                    <div className="flex flex-col gap-2">
-                      <span className="text-sm">Chọn kiểu gửi</span>
-                        <Select>
-                          <SelectTrigger className="w-full bg-gray-200 rounded-xl border-none focus:border-none">
-                              <SelectValue placeholder ="Chọn người gửi....." />
-                          </SelectTrigger>
+            <TabsContent value="send" className="mt-8 space-y-5">
+              <div className="flex flex-col gap-2">
+                <span className="text-sm">Chọn người nhận</span>
+                <Select
+                  onValueChange={(v) => {
+                    setRecipientType(v);
+                  }}
+                >
+                  <SelectTrigger className="bg-gray-200 border-none rounded-xl">
+                    <SelectValue placeholder="Chọn người nhận..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-200 border-none rounded-xl">
+                    <SelectItem value="driver">Tài xế</SelectItem>
+                    <SelectItem value="parent">Phụ huynh</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                          <SelectContent className="rounded-xl bg-gray-200 border-none transition-all duration-200">
-                              <SelectItem value="all driver">Tất cả tài xế</SelectItem>
-                              <SelectItem value="all parent">Tất cả phụ huynh</SelectItem>
-                              <SelectItem value="driver">Tài xế</SelectItem>
-                              <SelectItem value="parent">Phụ huynh</SelectItem>
-                          </SelectContent>
-                        </Select>
-                    </div>
+              <div className="flex flex-col gap-2">
+                <span className="text-sm">Tin nhắn</span>
+                <Textarea
+                  rows={4}
+                  value={messageContent}
+                  onChange={(e) => setMessageContent(e.target.value)}
+                  placeholder="Nhập nội dung..."
+                  className="bg-gray-200 border-none"
+                />
+              </div>
 
-                    <div className="flex flex-col gap-2">
-                      <span className="text-sm">Tin nhắn</span>
-                        <Textarea placeholder="Nhập tin nhắn của bạn....." className="bg-gray-200 border-none focus:border-none" />
-                    </div>
+              <Button
+                onClick={sendMessage}
+                className="w-full bg-blue-500 hover:bg-blue-700 text-white"
+              >
+                <Send className="mr-2" /> Gửi tin nhắn
+              </Button>
 
-                    <Button className="flex justify-center items-center bg-blue-500 w-full rounded-lg text-white text-sm cursor-pointer hover:bg-blue-700">
-                      <Send />
-                      <span>Gửi tin nhắn</span>
-                    </Button>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      </div>
+              <div className="space-y-3 mt-8">
+                <h3 className="text-sm font-medium">Tin nhắn đã gửi:</h3>
+                {messages
+                  .filter(
+                    (m) => m.sender_id?.account?.[0]?.user_id === userAdmin?.id
+                  )
+                  .map((m) => {
+                    const receiverName =
+                      m.receiver_id?.account?.[0]?.user_name || "Unknown";
+                    const receiverRole =
+                      m.receiver_id?.type_user?.type_user_name || "Receiver";
+                    return (
+                      <div
+                        key={m.message_id}
+                        className={`p-4 rounded-lg ${bgByRole(
+                          receiverRole,
+                          true
+                        )}`}
+                      >
+                        <div className="flex justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <Bell className="text-green-600" />
+                            <div>
+                              Gửi đến {receiverName} - {receiverRole}
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            {formatTime(m.send_time)}
+                          </div>
+                        </div>
+                        <div className="text-sm mt-1 ml-7">
+                          {m.message_content}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -8,7 +8,6 @@ export default function BusGp() {
         <div className="text-lg">
           <p>Select Child</p>
         </div>
-
         <div className="w-full flex flex-row gap-5 flex-wrap">
           <div className="flex flex-col bg-blue-600 rounded-xl min-w-[200px] py-3 justify-center items-center cursor-pointer hover:bg-blue-500">
             <div className="">

@@ -14,19 +14,46 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { use, useState } from "react";
+import { userService } from "@/service/users.service";
+import { CreateUserPayload, User } from "@/service/users.service";
 
 interface UserDialogProps {
   open: boolean;
   mode: "add" | "edit" | "read";
   onOpenChange: (open: boolean) => void;
+  onSuccess?: (user: CreateUserPayload) => void;
 }
 
 export default function UserDialog({
   open,
   mode,
   onOpenChange,
+  onSuccess,
 }: UserDialogProps) {
   const isRead = mode === "read";
+  const [formData, setFormData] = useState<CreateUserPayload>({
+    name: '',
+    phone_number: '',
+    email: '',
+    type_user_id: 2
+  });
+
+  const handelSubmit = async () => {
+    if (mode === "add") {
+      try {
+        const newUser = await userService.addUser(formData);
+        if (onSuccess) {
+          onSuccess(newUser);
+        }
+        onOpenChange(false);
+      } catch (error) {
+        console.error("Failed to add user:", error);
+      }
+    } else if (mode === "edit") {
+      // Handle edit user logic here
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -42,7 +69,7 @@ export default function UserDialog({
         <div className="space-y-3 mt-4">
           <div className="flex flex-col gap-2">
             <Label>Full name</Label>
-            <Input name="name" placeholder="full name" disabled={isRead} />
+            <Input name="name" onChange={(e) => setFormData({...formData, name: e.target.value})} placeholder="full name" disabled={isRead} />
           </div>
 
           <div className="flex flex-col gap-2">
@@ -51,6 +78,7 @@ export default function UserDialog({
               name="email"
               placeholder="abcd@gmail.com"
               disabled={isRead}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
             />
           </div>
 
@@ -60,12 +88,14 @@ export default function UserDialog({
               name="phone"
               placeholder="(+84) 019 833 282"
               disabled={isRead}
+              onChange={(e) => setFormData({...formData, phone_number: e.target.value})}
             />
           </div>
 
           <div className="flex flex-col gap-2">
             <Label>Role</Label>
-            <Select disabled={isRead}>
+            <Select disabled={isRead}
+              onValueChange={(value) => setFormData({...formData, type_user_id: value === 'driver' ? 2 : 3})}>
               <SelectTrigger className="w-full bg-gray-50 border-gray-100 rounded-lg">
                 <SelectValue placeholder="Chọn vai trò" />
               </SelectTrigger>
@@ -82,7 +112,9 @@ export default function UserDialog({
             <Button onClick={() => onOpenChange(false)} className="bg-red-500">
               Hủy
             </Button>
-            <Button className="bg-green-400">
+            <Button className="bg-green-400"
+              onClick={handelSubmit}
+            >
               {mode === "add" ? "Thêm" : "Lưu"}
             </Button>
           </div>

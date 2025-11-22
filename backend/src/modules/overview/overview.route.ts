@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { getOverview } from "./overview.controller.js";
+import { getCardInOverview } from "./overview.controller.js";
 
 const router = Router()
 
-router.get("/overview", getOverview)
+router.get("/card", getCardInOverview)
 
 export default router;

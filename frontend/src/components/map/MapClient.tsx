@@ -13,11 +13,11 @@ import { useEffect, useRef, useState } from "react";
 import axiosClient from "@/lib/axiosClient";
 import TrackingTest from "./TrackingTest";
 import { getRouteFromOSRM } from "@/lib/osrm";
+import studentIconImg from "../../../public/icon/student.png";
 
 // Fix default icon
-delete (
-  L.Icon.Default.prototype as unknown as { _getIconUrl?: string }
-)._getIconUrl;
+delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: string })
+  ._getIconUrl;
 
 L.Icon.Default.mergeOptions({
   iconRetinaUrl:
@@ -28,11 +28,22 @@ L.Icon.Default.mergeOptions({
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
+
+const studentIcon = L.icon({
+  iconUrl: studentIconImg.src,
+  iconSize: [40, 40],
+  iconAnchor: [20, 40],
+});
+
+
 const SCHOOL: [number, number] = [10.76006, 106.68229];
 
 export default function MapClient() {
   const [route, setRoute] = useState<[number, number][]>([]);
   const [busPos, setBusPos] = useState({ lat: SCHOOL[0], lng: SCHOOL[1] });
+  const [studentMarkers, setStudentMarkers] = useState<
+    Array<{ name: string; pos: [number, number]; index: number }>
+  >([]);
   const stepRef = useRef(0);
   const intervalRef = useRef<number | null>(null);
   const BUS_ID = 2; // hardcode or pass as prop
@@ -44,27 +55,45 @@ export default function MapClient() {
     (async () => {
       try {
         // gọi /api/realtime/2/students
-        const res = await axiosClient.get(`/api/realtime/${BUS_ID}/students`);
+        const res = await axiosClient.get(`/api/admin/realtime/${BUS_ID}/students`);
         if (!mounted) return;
 
         const students = res?.data?.data ?? [];
 
         // extract pickup coordinates từ response
-        const studentPoints: [number, number][] = students
+        const studentPointsWithNames: Array<{
+          name: string;
+          pos: [number, number];
+        }> = students
           .map((s: any) => {
             const pp = s?.pickup_point;
             if (!pp) return null;
             const lat = Number(pp.latitude);
             const lng = Number(pp.longitude);
             if (!isFinite(lat) || !isFinite(lng)) return null;
-            return [lat, lng] as [number, number];
+            return {
+              name: s?.student_name || `Student ${s?.student_id}`,
+              pos: [lat, lng] as [number, number],
+            };
           })
           .filter(Boolean);
+        console.log("Student pickup points:", studentPointsWithNames);
 
-        console.log("Student pickup points:", studentPoints);
+        setStudentMarkers(
+          studentPointsWithNames.map((sp, idx) => ({
+            ...sp,
+            index: idx,
+          }))
+        );
+
+        const studentPoints = studentPointsWithNames.map((sp) => sp.pos)
 
         // build waypoints: SCHOOL -> students -> SCHOOL (round trip)
-        const waypoints: [number, number][] = [SCHOOL, ...studentPoints, SCHOOL];
+        const waypoints: [number, number][] = [
+          SCHOOL,
+          ...studentPoints,
+          SCHOOL,
+        ];
 
         if (waypoints.length < 2) {
           console.warn("Not enough waypoints for routing");
@@ -126,6 +155,17 @@ export default function MapClient() {
         <Marker position={SCHOOL}>
           <Popup>School</Popup>
         </Marker>
+
+        {studentMarkers.map((student) => (
+          <Marker key={student.index} position={student.pos} icon={studentIcon}>
+            <Popup>
+              <div className="text-sm">
+                <p className="font-semibold">{student.name}</p>
+                <p className="text-gray-600">Pickup #{student.index + 1}</p>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
 
         {route.length > 0 && <Polyline positions={route} color="blue" />}
 
