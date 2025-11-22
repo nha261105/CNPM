@@ -9,7 +9,7 @@ export async function sendMessageFromAdminToDriverHandle(req: Request, res: Resp
   try {
     const { adminId, mes } = req.body;
     if (!adminId)
-      return res.json({ ok: false, message: "driver id khong dung" });
+      return res.json({ ok: false, message: "admin id khong dung" });
     if (mes == null || mes.trim().length === 0)
       return res.json({ ok: false, message: "message sai" });
     const data = await sendMessageFromAdminToDriver(adminId, mes.trim());
@@ -25,7 +25,7 @@ export async function sendMessageFromAdminToParentHandle(req: Request, res: Resp
   try {
     const { adminId, mes } = req.body;
     if (!adminId)
-      return res.json({ ok: false, message: "driver id khong dung" });
+      return res.json({ ok: false, message: "admin id khong dung" });
     if (mes == null || mes.trim().length === 0)
       return res.json({ ok: false, message: "message sai" });
     const data = await sendMessageFromAdminToDriver(adminId, mes);

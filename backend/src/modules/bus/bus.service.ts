@@ -11,21 +11,26 @@ export const getAllBus = async () => {
         throw new Error(`Error fetching bus: ${busesError.message}`);
     }
 
-    return buses;
-}
+  return buses;
+};
 
-export const updateBus = async (bus_id : number, updateData: Partial<{ license_plate_number : string;
-                number_of_seats: number;
-                bus_status: string }>) => {
-    const {data, error} = await supabase
-        .from('bus')
-        .update(updateData)
-        .eq('bus_id', bus_id);
-    if (error) {
-        throw new Error(`Error updating bus: ${error.message}`);
-    }
-    return data;
-}   
+export const updateBus = async (
+  bus_id: number,
+  updateData: Partial<{
+    license_plate_number: string;
+    number_of_seats: number;
+    bus_status: string;
+  }>
+) => {
+  const { data, error } = await supabase
+    .from("bus")
+    .update(updateData)
+    .eq("bus_id", bus_id);
+  if (error) {
+    throw new Error(`Error updating bus: ${error.message}`);
+  }
+  return data;
+};
 
 export const addBus = async (busData: Partial<{license_plate_number : string, number_of_seats: number, status: string}>) => {
     const {data, error} = await supabase

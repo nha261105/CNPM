@@ -1,4 +1,3 @@
-import { AuthWeakPasswordError } from "@supabase/supabase-js";
 import {
   handleTracking,
   getAllCurrentPos,

@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import * as busService from './bus.service.js';
+import { error } from "console";
 
 export const getBuses = async (req: Request, res: Response) => {
     try {
