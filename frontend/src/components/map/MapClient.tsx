@@ -122,7 +122,7 @@ export default function MapClient() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, []); 
 
   // 2. TỰ ĐỘNG chạy khi có route
   useEffect(() => {
