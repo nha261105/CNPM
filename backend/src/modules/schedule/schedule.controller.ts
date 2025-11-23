@@ -75,9 +75,17 @@ export async function createScheduleHandler(req: Request, res: Response) {
 export async function getAllSchedulesHandler(req: Request, res: Response) {
   try {
     const { date, driver_id, bus_id, route_id } = req.query;
+    const user = (req as any).user;
+
     const filter: any = {};
     if (date) filter.date = date;
-    if (driver_id) filter.driver_id = Number(driver_id);
+
+    if (user?.accountType === "driver") {
+      filter.driver_id = user.userId;
+    } else if (driver_id) {
+      filter.driver_id = Number(driver_id);
+    }
+
     if (bus_id) filter.bus_id = Number(bus_id);
     if (route_id) filter.route_id = Number(route_id);
     const allSchedule = await getAllSchedule(

@@ -171,17 +171,13 @@ export async function getAllSchedule(filter?: {
   let q = supabase
     .from("schedule")
     .select(
-      `* bus (
+      `*, bus (
         bus_id,
         license_plate_number
       ),
       routes (
         route_id,
         route_name
-      ),
-      account:driver_id (
-        user_id,
-        user_name
       )`
     )
     .eq("is_deleted", false)

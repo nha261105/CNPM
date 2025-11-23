@@ -37,33 +37,14 @@ const studentIcon = L.icon({
 });
 
 const SCHOOL: [number, number] = [10.76006, 106.68229];
-
-<<<<<<< HEAD
-// Có thể nhận props: studentMarkers, busPos, route. Nếu không truyền thì giữ nguyên logic cũ.
-import React from "react";
-
 type StudentMarker = { name: string; pos: [number, number]; index: number };
 type BusPos = { lat: number; lng: number };
-
 interface MapClientProps {
   studentMarkers?: StudentMarker[];
   busPos?: BusPos;
   route?: [number, number][];
 }
-
 export default function MapClient(props: MapClientProps) {
-  const [route, setRoute] = useState<[number, number][]>(props.route || []);
-  const [busPos, setBusPos] = useState<BusPos>(
-    props.busPos || { lat: SCHOOL[0], lng: SCHOOL[1] }
-  );
-  const [studentMarkers, setStudentMarkers] = useState<StudentMarker[]>(
-    props.studentMarkers || []
-  );
-  const stepRef = useRef(0);
-  const intervalRef = useRef<number | null>(null);
-  const BUS_ID = 2; // hardcode or pass as prop
-=======
-export default function MapClient() {
   const [route, setRoute] = useState<[number, number][]>([]);
   const [studentMarkers, setStudentMarkers] = useState<
     Array<{ name: string; pos: [number, number]; index: number }>
@@ -80,7 +61,6 @@ export default function MapClient() {
     : simPos
     ? simPos
     : { lat: SCHOOL[0], lng: SCHOOL[1] };
->>>>>>> dev
 
   // Nếu không truyền props thì giữ nguyên logic fetch cũ
   useEffect(() => {
@@ -93,17 +73,12 @@ export default function MapClient() {
         );
         if (!mounted) return;
         const students = res?.data?.data ?? [];
-<<<<<<< HEAD
-        const studentPointsWithNames: StudentMarker[] = students
-          .map((s: any, idx: number) => {
-=======
 
         const studentPointsWithNames: Array<{
           name: string;
           pos: [number, number];
         }> = students
           .map((s: any) => {
->>>>>>> dev
             const pp = s?.pickup_point;
             if (!pp) return null;
             const lat = Number(pp.latitude);
@@ -115,11 +90,6 @@ export default function MapClient() {
               index: idx,
             };
           })
-<<<<<<< HEAD
-          .filter(Boolean) as StudentMarker[];
-        setStudentMarkers(studentPointsWithNames);
-        const studentPoints = studentPointsWithNames.map((sp) => sp.pos);
-=======
           .filter(Boolean);
         console.log("Student pickup points:", studentPointsWithNames);
 
@@ -132,22 +102,17 @@ export default function MapClient() {
 
         const studentPoints = studentPointsWithNames.map((sp) => sp.pos);
 
->>>>>>> dev
         const waypoints: [number, number][] = [
           SCHOOL,
           ...studentPoints,
           SCHOOL,
         ];
-<<<<<<< HEAD
-        if (waypoints.length < 2) return;
-=======
 
         if (waypoints.length < 2) {
           console.warn("Not enough waypoints for routing");
           return;
         }
 
->>>>>>> dev
         const osrmRoute = await getRouteFromOSRM(waypoints);
         if (!mounted) return;
         if (osrmRoute && osrmRoute.length > 0) setRoute(osrmRoute);
@@ -160,23 +125,6 @@ export default function MapClient() {
     };
   }, [props.studentMarkers, props.busPos, props.route]);
 
-<<<<<<< HEAD
-  // Animate bus nếu không truyền props
-  useEffect(() => {
-    if (props.route && props.busPos) return;
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    if (route.length === 0) return;
-    stepRef.current = 0;
-    setBusPos({ lat: route[0][0], lng: route[0][1] });
-    intervalRef.current = window.setInterval(() => {
-      stepRef.current = (stepRef.current + 1) % route.length;
-      const [lat, lng] = route[stepRef.current];
-      setBusPos({ lat, lng });
-    }, 300);
-=======
   // 2. TỰ ĐỘNG chạy khi có route
   useEffect(() => {
     if (route.length === 0) return;
@@ -221,16 +169,11 @@ export default function MapClient() {
       }
     }, 50);
 
->>>>>>> dev
     return () => {
       console.log(" Stopping auto GPS simulator");
       clearInterval(interval);
     };
-<<<<<<< HEAD
-  }, [route, props.route, props.busPos]);
-=======
   }, [route, BUS_ID]);
->>>>>>> dev
 
   return (
     <div className="relative w-full h-[800px] rounded-2xl overflow-hidden shadow-md">
@@ -253,12 +196,8 @@ export default function MapClient() {
           </Marker>
         ))}
         {route.length > 0 && <Polyline positions={route} color="blue" />}
-<<<<<<< HEAD
-        <TrackingTest data={busPos} />
-=======
 
         <TrackingTest data={busCurrentPos} timestamp={realtimePos?.timestamp} />
->>>>>>> dev
       </MapContainer>
 
       <div className="absolute top-4 right-4 bg-white/95 p-4 rounded shadow-lg z-[1000] max-w-xs">
