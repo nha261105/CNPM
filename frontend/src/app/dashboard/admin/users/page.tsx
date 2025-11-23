@@ -34,6 +34,7 @@ export default function ManagerUsers() {
   const [users, setUsers] = useState<UserType[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchType, setSearchType] = useState('all');
+  const [selectedUser, setSelectedUser] = useState<any>(null); 
 
   const fetchUsers = async () => {
     try {
@@ -56,12 +57,21 @@ export default function ManagerUsers() {
     open: boolean;
     mode: "add" | "edit" | "read";
   }>({ open: false, mode: "add" });
-  const handleOpen = (mode: "add" | "edit" | "read") => {
+  const handleOpen = (mode: "add" | "edit" | "read", user?: UserType) => {
+    setSelectedUser(user || null);
     setDialog({ open: true, mode });
   };
   const handleClose = (open: boolean) => {
     setDialog((prev) => ({ ...prev, open }));
   };
+  const handelDelete = async (id: number) => {
+    try {
+      await userService.deleteUser(id);
+      fetchUsers();
+    } catch(error) {
+      console.error("Failed to delete user:", error);
+    }
+  }
 
   const filteredUsers = users.filter((user) => {
     const user_name = user.name ? user.name.toLowerCase() : '';
@@ -147,13 +157,14 @@ export default function ManagerUsers() {
                       <Button
                         variant={"secondary"}
                         className="hover:bg-orange-300 border border-gray-300"
-                        onClick={() => handleOpen("edit")}
+                        onClick={() => handleOpen("edit", user)}
                       >
                         <UserRoundPen />
                       </Button>
                       <Button
                         variant={"secondary"}
                         className="hover:bg-red-500 border border-gray-300"
+                        onClick={() => handelDelete(user.user_id)}
                       >
                         <Trash />
                       </Button>
@@ -172,6 +183,7 @@ export default function ManagerUsers() {
         mode={dialog.mode}
         onOpenChange={handleClose}
         onSuccess={fetchUsers}
+        initialData={selectedUser}
       />
     </div>
   );

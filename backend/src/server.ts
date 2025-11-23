@@ -17,6 +17,7 @@ import scheduleRoutes from "./modules/schedule/schedule.routes.js";
 import userRoutes from "./modules/user/user.routes.js";
 import busRoutes from "./modules/bus/bus.routes.js"
 import routeRoutes from "./modules/routes/route.routes.js"
+import pickupPointRoutes from "./modules/pickup_point/pickup_point.routes.js"
 
 dotenv.config();
 
@@ -47,6 +48,7 @@ server.use("/api/schedule", scheduleRoutes);
 server.use("/api/users", userRoutes)
 server.use("/api/bus", busRoutes)
 server.use("/api/routes", routeRoutes)
+server.use("/api/pickup_point", pickupPointRoutes)
 
 // ------------------- DRIVER ROUTE --------------------------
 server.use("/api", StudentsRoute);

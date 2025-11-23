@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { userService } from "@/service/users.service";
 import { CreateUserPayload, User } from "@/service/users.service";
 
@@ -23,6 +23,7 @@ interface UserDialogProps {
   mode: "add" | "edit" | "read";
   onOpenChange: (open: boolean) => void;
   onSuccess?: (user: CreateUserPayload) => void;
+  initialData?: User;
 }
 
 export default function UserDialog({
@@ -30,6 +31,7 @@ export default function UserDialog({
   mode,
   onOpenChange,
   onSuccess,
+  initialData
 }: UserDialogProps) {
   const isRead = mode === "read";
   const [formData, setFormData] = useState<CreateUserPayload>({
@@ -51,9 +53,29 @@ export default function UserDialog({
         console.error("Failed to add user:", error);
       }
     } else if (mode === "edit") {
-      // Handle edit user logic here
+      try {
+        const newUser = await userService.updateUser(initialData!.user_id, formData);
+        if (onSuccess) {
+          onSuccess(newUser);
+        }
+        onOpenChange(false);
+      } catch(error) {
+        console.error("Failed to update user:", error);
+      }
     }
   }
+
+  useEffect(() => {
+    console.log(initialData);
+    if (mode === "edit" && initialData) {
+      setFormData({
+        name: initialData.name,
+        phone_number: initialData.phone_number,
+        email: initialData.email,
+        type_user_id: initialData.type_user_id,
+      });
+    }
+  },[open, mode])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -69,7 +91,8 @@ export default function UserDialog({
         <div className="space-y-3 mt-4">
           <div className="flex flex-col gap-2">
             <Label>Full name</Label>
-            <Input name="name" onChange={(e) => setFormData({...formData, name: e.target.value})} placeholder="full name" disabled={isRead} />
+            <Input name="name" onChange={(e) => setFormData({...formData, name: e.target.value})} placeholder="full name" disabled={isRead} 
+              value={formData.name}/>
           </div>
 
           <div className="flex flex-col gap-2">
@@ -79,6 +102,7 @@ export default function UserDialog({
               placeholder="abcd@gmail.com"
               disabled={isRead}
               onChange={(e) => setFormData({...formData, email: e.target.value})}
+              value={formData.email}
             />
           </div>
 
@@ -89,13 +113,15 @@ export default function UserDialog({
               placeholder="(+84) 019 833 282"
               disabled={isRead}
               onChange={(e) => setFormData({...formData, phone_number: e.target.value})}
+              value={formData.phone_number}
             />
           </div>
 
           <div className="flex flex-col gap-2">
             <Label>Role</Label>
             <Select disabled={isRead}
-              onValueChange={(value) => setFormData({...formData, type_user_id: value === 'driver' ? 2 : 3})}>
+              onValueChange={(value) => setFormData({...formData, type_user_id: value === 'driver' ? 2 : 3})}
+              value={formData.type_user_id === 2 ? 'driver' : 'parent'}>
               <SelectTrigger className="w-full bg-gray-50 border-gray-100 rounded-lg">
                 <SelectValue placeholder="Chọn vai trò" />
               </SelectTrigger>

@@ -36,5 +36,11 @@ export const userService = {
     addUser: async (userData: CreateUserPayload) => {
         const res = await axiosClient.post<{ ok: boolean; data: CreateUserPayload}>("api/users", userData);
         return res.data.data;
+    }, 
+    
+    deleteUser: async (id: number) => {
+        const res = await axiosClient.delete<{ ok: boolean, data: User }>(`api/users/${id}`);
+        return res.data.data;
     }
+
 }

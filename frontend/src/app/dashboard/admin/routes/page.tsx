@@ -18,64 +18,8 @@ import RouteDialog from "./RouteDialog";
 import { routeService } from "@/service/route.service";
 
 export default function ManagerRoutes() {
-  // const routes = [
-  //   {
-  //     id: 1,
-  //     name: "Route A",
-  //     stops: 8,
-  //     students: 42,
-  //     driver: "John Smith",
-  //     bus: "BUS001",
-  //     status: true,
-  //   },
-  //   {
-  //     id: 2,
-  //     name: "Route B",
-  //     stops: 12,
-  //     students: 32,
-  //     driver: "Negav",
-  //     bus: "BUS002",
-  //     status: true,
-  //   },
-  //   {
-  //     id: 3,
-  //     name: "Route C",
-  //     stops: 8,
-  //     students: 47,
-  //     driver: "King Von",
-  //     bus: "BUS003",
-  //     status: false,
-  //   },
-  //   {
-  //     id: 4,
-  //     name: "Route D",
-  //     stops: 5,
-  //     students: 32,
-  //     driver: "Naruto Baco",
-  //     bus: "BUS004",
-  //     status: false,
-  //   },
-  //   {
-  //     id: 5,
-  //     name: "Route E",
-  //     stops: 8,
-  //     students: 42,
-  //     driver: "John Smith",
-  //     bus: "BUS005",
-  //     status: true,
-  //   },
-  //   {
-  //     id: 6,
-  //     name: "Route F",
-  //     stops: 3,
-  //     students: 10,
-  //     driver: "Ronaldo",
-  //     bus: "BUS006",
-  //     status: true,
-  //   },
-  // ];
-
   const [routes, setRoutes] = useState<any[]>([]);
+  const [selectedRoute, setSelectedRoute] = useState<any>(null);
 
   const fetchRoutes = async () => {
     try {
@@ -87,21 +31,32 @@ export default function ManagerRoutes() {
     }
   };
 
-  useEffect(() => {
-    fetchRoutes();
-  }, []);
-
   const [dialog, setDialog] = useState<{
     open: boolean;
     mode: "add" | "edit" | "read";
   }>({ open: false, mode: "add" });
-  const handleOpen = (mode: "add" | "edit" | "read") => {
+  const handleOpen = (mode: "add" | "edit" | "read", route?: any) => {
+    setSelectedRoute(route);
     setDialog({ open: true, mode });
   };
+
+  useEffect(() => {
+    fetchRoutes();
+  }, []);
 
   const handleClose = (open: boolean) => {
     setDialog((prev) => ({ ...prev, open }));
   };
+
+  const handleDelete = async (route_id: number) => {
+      try {
+        await routeService.deleteRoute(route_id);
+        fetchRoutes();
+      } catch (error) {
+        console.error("Failed to delete route:", error);
+      }
+    }
+
   return (
     <div className="flex-1 overflow-y-auto p-8">
       <div className="space-y-6">
@@ -127,6 +82,7 @@ export default function ManagerRoutes() {
                   <TableHead>Name</TableHead>
                   <TableHead>Stops</TableHead>
                   <TableHead>Students</TableHead>
+                  <TableHead>Thời gian dự kiến</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -139,6 +95,7 @@ export default function ManagerRoutes() {
                     <TableCell>{route.route_name}</TableCell>
                     <TableCell>{route.total_points}</TableCell>
                     <TableCell>{route.total_students}</TableCell>
+                    <TableCell>{route.duration}</TableCell>
                     <TableCell>
                       <Badge
                         variant={"secondary"}
@@ -157,7 +114,7 @@ export default function ManagerRoutes() {
                       <Button
                         variant={"secondary"}
                         className="hover:bg-orange-400 border border-gray-300"
-                        onClick={() => handleOpen("edit")}
+                        onClick={() => handleOpen("edit", route)}
                       >
                         <PenBoxIcon />
                       </Button>
@@ -165,6 +122,7 @@ export default function ManagerRoutes() {
                       <Button
                         variant={"secondary"}
                         className="hover:bg-red-500 border border-gray-300"
+                        onClick={() => handleDelete(route.route_id)}
                       >
                         <Trash />
                       </Button>
@@ -182,6 +140,8 @@ export default function ManagerRoutes() {
         open={dialog.open}
         mode={dialog.mode}
         onOpenChange={handleClose}
+        onSuccess={fetchRoutes}
+        intialData={selectedRoute}
       />
     </div>
   );
