@@ -28,7 +28,7 @@ export async function sendMessageFromAdminToParentHandle(req: Request, res: Resp
       return res.json({ ok: false, message: "admin id khong dung" });
     if (mes == null || mes.trim().length === 0)
       return res.json({ ok: false, message: "message sai" });
-    const data = await sendMessageFromAdminToDriver(adminId, mes);
+    const data = await sendMessageFromAdminToParent(adminId, mes);
     console.log("message: ", data);
     return res.json({ ok: true, data });
   } catch (err) {
