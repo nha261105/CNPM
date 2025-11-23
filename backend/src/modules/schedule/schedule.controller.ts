@@ -74,7 +74,23 @@ export async function createScheduleHandler(req: Request, res: Response) {
  */
 export async function getAllSchedulesHandler(req: Request, res: Response) {
   try {
-    const allSchedule = await getAllSchedule();
+    const { date, driver_id, bus_id, route_id } = req.query;
+    const user = (req as any).user;
+
+    const filter: any = {};
+    if (date) filter.date = date;
+
+    if (user?.accountType === "driver") {
+      filter.driver_id = user.userId;
+    } else if (driver_id) {
+      filter.driver_id = Number(driver_id);
+    }
+
+    if (bus_id) filter.bus_id = Number(bus_id);
+    if (route_id) filter.route_id = Number(route_id);
+    const allSchedule = await getAllSchedule(
+      Object.keys(filter).length > 0 ? filter : undefined
+    );
     return res.status(200).json({
       success: true,
       data: allSchedule,
@@ -92,7 +108,7 @@ export async function getAllSchedulesHandler(req: Request, res: Response) {
  * update lịch trình
  */
 export async function updateScheduleHandler(req: Request, res: Response) {
-  const { old_data, new_data } = (await req.body) as any;
+  const { old_data, new_data } = req.body as any;
   try {
     if (!old_data || !new_data) {
       return res.status(400).json({
@@ -121,7 +137,7 @@ export async function updateScheduleHandler(req: Request, res: Response) {
 export async function deleteScheduleHandler(req: Request, res: Response) {
   try {
     const { bus_id, driver_id, schedule_date, route_id, start_time } =
-      req.body as any;
+      req.query;
     if (!bus_id || !driver_id || !schedule_date || !route_id || !start_time) {
       return res.status(400).json({
         success: false,
@@ -132,14 +148,15 @@ export async function deleteScheduleHandler(req: Request, res: Response) {
       Number(driver_id),
       Number(bus_id),
       Number(route_id),
-      schedule_date,
-      start_time
+      schedule_date as string,
+      start_time as string
     );
     return res.status(200).json({
       success: true,
       message: "xóa thành công lịch trình",
     });
   } catch (error) {
+    console.error("Error deleting schedule:", error);
     return res.status(400).json({
       success: false,
       message: "lỗi xóa lịch trình",

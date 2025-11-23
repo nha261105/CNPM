@@ -67,11 +67,6 @@ export const SideBar = ({ role }: { role: Role }) => {
             path: `/dashboard/admin/nofitications`,
             icon: <Bell />,
           },
-          {
-            name: "Thống kê",
-            path: `/dashboard/admin/analytics`,
-            icon: <ChartNoAxesCombined />,
-          },
         ],
         parent: [
           {
@@ -83,6 +78,11 @@ export const SideBar = ({ role }: { role: Role }) => {
             name: "Trạng thái con",
             path: `/dashboard/parent/child-status`,
             icon: <Baby />,
+          },
+          {
+            name: "Lịch sử chuyến đi",
+            path: `/dashboard/parent/trip-history`,
+            icon: <CalendarCheck />,
           },
           {
             name: "Thông báo",

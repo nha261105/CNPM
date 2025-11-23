@@ -83,7 +83,7 @@ export default function AdminNofitications() {
         userAdmin.id,
         messageContent.trim()
       );
-    } else {
+    } else if(recipientType === "parent") {
       res = await adminNofitication.sendMessageFromAdminToParentApi(
         userAdmin.id,
         messageContent.trim()

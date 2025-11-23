@@ -78,6 +78,7 @@ export default function Nofitications() {
       const newData = [data.data[0], ...DBMessage]
       setDBMessage(newData)
       setMessageContent("")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       alert("Error: " + error.message)
     }
@@ -85,6 +86,7 @@ export default function Nofitications() {
 
   useEffect(() => {
     setDBMessage(MessageDataLoad)
+    console.log(MessageDataLoad)
   }, [MessageDataLoad]);
 
   if (isLoading) return <p className="text-lg text-gray-500">Đang tải...</p>;
