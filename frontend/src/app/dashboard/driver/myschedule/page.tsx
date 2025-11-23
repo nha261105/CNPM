@@ -1,4 +1,5 @@
 "use client";
+import dynamic from "next/dynamic";
 import { Navigation, TriangleAlert } from "lucide-react";
 import {
   Dialog,
@@ -8,7 +9,9 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import MapClient from "@/components/map/MapClient";
+const MapClient = dynamic(() => import("@/components/map/MapClient"), {
+  ssr: false,
+});
 import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
 import CheckpointsCard from "./CheckpointsCard";
