@@ -13,12 +13,12 @@ const axiosClient = axios.create({
 axiosClient.interceptors.request.use(
   (config) => {
     // Lấy token từ localStorage
-    const token = localStorage.getItem("token");
-    
+    const token = localStorage.getItem("authToken");
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
+
     return config;
   },
   (error) => {
@@ -33,7 +33,7 @@ axiosClient.interceptors.response.use(
     if (error.response?.status === 401) {
       // Token hết hạn hoặc không hợp lệ
       console.error("Unauthorized - Token invalid or expired");
-      localStorage.removeItem("token");
+      localStorage.removeItem("authToken");
       localStorage.removeItem("user");
       if (typeof window !== "undefined") {
         window.location.href = "/login";
