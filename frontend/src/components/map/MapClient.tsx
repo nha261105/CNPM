@@ -122,7 +122,7 @@ export default function MapClient(props: MapClientProps) {
     return () => {
       mounted = false;
     };
-  }, [props.studentMarkers, props.busPos, props.route]);
+  }, []); 
 
   // 2. TỰ ĐỘNG chạy khi có route
   useEffect(() => {
