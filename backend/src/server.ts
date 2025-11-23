@@ -29,8 +29,8 @@ const port: number | string = process.env.PORT || 5000;
 // ----- CORS -----
 const allowOrigins = [
   "http://localhost:3000",
-  "https://cnpm-uh56.onrender.com", // backend render (không cần cho frontend)
-  "https://YOUR_VERCEL_DOMAIN.vercel.app", // thêm domain thật của frontend
+  "https://cnpm-uh56.onrender.com",
+  "https://cnpm-vert.vercel.app/",
 ];
 
 server.use(
