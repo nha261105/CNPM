@@ -10,17 +10,30 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useState } from "react";
-const CheckListCard = ({ student }: { student: Student }) => {
+import { AttendanceLogApi } from "@/api/attendanceLog";
+const CheckListCard = ({ student, schedule }: { student: Student, schedule: any }) => {
   const [checking, setChecking] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [openReport, setOpenReport] = useState(false);
+  const handleCheckIn = async () => {
+    const res = await AttendanceLogApi.checkIn(schedule.schedule_id, student.student_id, schedule.latitude, schedule.longitude);
+    if (res.ok) {
+      setChecking(true);
+    }
+  }
+  const handleCheckOut = async () => {
+    const res = await AttendanceLogApi.checkOut(schedule.schedule_id, student.student_id, schedule.latitude, schedule.longitude);
+    if (res.ok) {
+      setLeaving(true);
+    }
+  }
   return (
     <section className="border border-gray-300 rounded-lg flex flex-col gap-6 p-6">
       <div className="flex flex-col items-start gap-1">
-        <p className="text-xl font-semibold">{student.name}</p>
-        <p className="text-gray-600 text-lg">
-          {student.grade} • {student.mark}
-        </p>
+        <p className="text-xl font-semibold">{student.student_name}</p>
+        {/* <p className="text-gray-600 text-lg">
+          {student.grade} • {student.pickup_point?.description}
+        </p> */}
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-2">
@@ -33,7 +46,10 @@ const CheckListCard = ({ student }: { student: Student }) => {
               className={`${
                 checking ? "inline-flex px-2 mt-2" : "w-full p-2"
               } bg-green-600 rounded-xl cursor-pointer transition-all duration-200 ease-in-out items-center justify-center`}
-              onClick={() => setChecking(true)}
+              onClick={() => {
+                setChecking(true);
+                handleCheckIn();
+              }}
             >
               <p className="text-white font-medium">
                 {checking ? "Checked In" : "Check in (board)"}
@@ -54,7 +70,10 @@ const CheckListCard = ({ student }: { student: Student }) => {
               } ${
                 checking ? "" : "bg-gray-200"
               } rounded-xl cursor-pointer border border-gray-200 transition-all duration-200 ease-in-out items-center justify-center`}
-              onClick={() => setLeaving(true)}
+              onClick={() => {
+                setLeaving(true);
+                handleCheckOut();
+              }}
             >
               <p
                 className={`${
@@ -90,11 +109,11 @@ const CheckListCard = ({ student }: { student: Student }) => {
           <div className="flex items-start flex-1 gap-2 flex-col">
             <div className="flex flex-row gap-2 items-center">
               <p className="font-normal text-xl">Student:</p>
-              <p className="font-bold text-xl">{student.name}</p>
+              <p className="font-bold text-xl">{student.student_name}</p>
             </div>
             <div className="flex flex-row gap-2 items-center">
               <p className="font-normal text-xl">Expected at:</p>
-              <p className="font-bold text-xl">{student.mark}</p>
+              {/* <p className="font-bold text-xl">{student.pickup_point?.description}</p> */}
             </div>
           </div>
           <textarea
