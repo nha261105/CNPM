@@ -1,7 +1,6 @@
 "use client";
 import dynamic from "next/dynamic";
-import { Navigation, TriangleAlert } from "lucide-react";
-import { Loader2, Navigation, TriangleAlert } from "lucide-react";
+import { Navigation, TriangleAlert,Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
