@@ -86,7 +86,7 @@ export default function MapClient(props: MapClientProps) {
             if (!isFinite(lat) || !isFinite(lng)) return null;
             return {
               name: s?.student_name || `Student ${s?.student_id}`,
-              pos: [lat, lng] as [number, number],
+              pos: [lat, lng] as [number, number]
             };
           })
           .filter(Boolean);
