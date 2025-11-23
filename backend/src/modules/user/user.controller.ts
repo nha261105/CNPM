@@ -39,3 +39,17 @@ export const addUser = async (req : Request, res : Response) => {
         return res.status(500).json({ ok: false, error: "Failed to add user"});
     }
 }
+
+export const deleteUser = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    try {
+        if (!id) {
+            return res.status(400).json({ ok: false, error: "User ID is required" });
+        }
+        const deletedUser = await userService.deleteUser(parseInt(id));
+        return res.json({ ok: true, data: deletedUser });
+    } catch (err) {
+        console.error("Delete user error: ", err);
+        return res.status(500).json({ ok: false, error: "Failed to delete user" });
+    }
+}
