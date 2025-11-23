@@ -20,8 +20,6 @@ export const checkIn = async (payload: AttendanceActionDto) => {
             student_id: payload.student_id,
             status: 'Boarded',
             check_in_time: new Date().toISOString(),
-            check_in_lat: payload.latitude,
-            check_in_lng: payload.longitude
         }, { onConflict: 'schedule_id, student_id' })
         .select()
         .single();
@@ -36,8 +34,6 @@ export const checkOut = async (payload: AttendanceActionDto) => {
         .update({
             status: 'Dropped',
             check_out_time: new Date().toISOString(),
-            check_out_lat: payload.latitude,
-            check_out_lng: payload.longitude
         }).match({
             student_id: payload.student_id,
             schedule_id: payload.schedule_id

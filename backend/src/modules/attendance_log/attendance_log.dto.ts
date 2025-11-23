@@ -1,8 +1,6 @@
 export interface AttendanceActionDto {
     schedule_id: number;
     student_id: number;
-    latitude?: number;  // Tọa độ GPS lúc bấm
-    longitude?: number;
 }
 
 export interface StudentAttendanceView {

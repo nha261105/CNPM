@@ -220,10 +220,6 @@ export async function getAllSchedule(filter?: {
         status: status,
         is_active: status === "in_progress",
       };
-      // Debug log để kiểm tra schedule_id
-      if (!schedule.schedule_id) {
-        console.warn("Warning: schedule_id is missing for schedule:", schedule);
-      }
       return result;
     })
   );

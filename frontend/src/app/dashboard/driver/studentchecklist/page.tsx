@@ -42,13 +42,12 @@ export default function StudentsCheckList() {
     enabled: !!currentSchedule?.bus_id,
   });
 
-  console.log(studentsFromAPI);
-  
-  console.log("Schedule ID:", currentSchedule?.schedule_id);
-  console.log("Current schedule:", currentSchedule);
-  console.log("Students:", studentsFromAPI);
-  console.log("Students loading:", studentsLoading);
-  console.log("Students error:", studentsError);
+  // console.log(studentsFromAPI);
+  // console.log("Schedule ID:", currentSchedule?.schedule_id);
+  // console.log("Current schedule:", currentSchedule);
+  // console.log("Students:", studentsFromAPI);
+  // console.log("Students loading:", studentsLoading);
+  // console.log("Students error:", studentsError);
 
   const fetchSchedule = async (userId: number) => {
     if (!userId) return;

@@ -16,13 +16,13 @@ const CheckListCard = ({ student, schedule }: { student: Student, schedule: any 
   const [leaving, setLeaving] = useState(false);
   const [openReport, setOpenReport] = useState(false);
   const handleCheckIn = async () => {
-    const res = await AttendanceLogApi.checkIn(schedule.schedule_id, student.student_id, schedule.latitude, schedule.longitude);
+    const res = await AttendanceLogApi.checkIn(schedule.schedule_id, student.student_id);
     if (res.ok) {
       setChecking(true);
     }
   }
   const handleCheckOut = async () => {
-    const res = await AttendanceLogApi.checkOut(schedule.schedule_id, student.student_id, schedule.latitude, schedule.longitude);
+    const res = await AttendanceLogApi.checkOut(schedule.schedule_id, student.student_id);
     if (res.ok) {
       setLeaving(true);
     }
