@@ -3,7 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 
 import supabase from "./config/supabaseClient.js";
-// import { startMQTT } from "./modules/mqtt/mqtt.service.js";
+import { startMQTT } from "./modules/mqtt/mqtt.service.js";
 
 import authRoutes from "./modules/auth/auth.routes.js";
 import overviewRoutes from "./modules/overview/overview.route.js";
@@ -20,13 +20,36 @@ import pickupPointRoutes from "./modules/pickup_point/pickup_point.routes.js";
 
 dotenv.config();
 
-// startMQTT();
+startMQTT();
 
 const server = express();
 const port: number | string = process.env.PORT || 5000;
 
 //middlewares
-server.use(cors());
+// ----- CORS -----
+const allowOrigins = [
+  "http://localhost:3000",
+  "https://cnpm-uh56.onrender.com", // backend render (không cần cho frontend)
+  "https://YOUR_VERCEL_DOMAIN.vercel.app", // thêm domain thật của frontend
+];
+
+server.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true); // Postman / server-side
+      if (allowOrigins.includes(origin)) return cb(null, true);
+      return cb(new Error("CORS blocked: " + origin));
+    },
+    credentials: true, // cần nếu dùng cookie / session
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+server.use((req, res, next) => {
+  res.header("Access-Control-Allow-Credentials", "true");
+  next();
+});
 server.use(express.json());
 
 // Routes
