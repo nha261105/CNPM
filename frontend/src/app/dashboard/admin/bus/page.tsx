@@ -18,7 +18,9 @@ import BusDialog from "./BusDialog";
 export default function ManagerBus() {
   const [buses, setBuses] = useState<any[]>([]);
   const [dialog, setDialog] = useState<{ open: boolean; mode: "add" | "edit" | "read" }>({ open: false, mode: "add" });
-  const handleOpen = (mode: "add" | "edit" | "read") => {
+  const [selectedBus, setSelectedBus] = useState<any>(null);
+  const handleOpen = (mode: "add" | "edit" | "read", bus?: any) => {
+    setSelectedBus(bus || null);
     setDialog({ open: true, mode });
   };
   const handleClose = (open: boolean) => {
@@ -32,6 +34,15 @@ export default function ManagerBus() {
       console.error("Failed to fetch buses:", error);
     }
   };
+
+  const handleDelete = async (busId: number) => {
+    try {
+      await busService.deleteBus(busId);
+      fetchBuses();
+    } catch (error) {
+      console.error("Failed to delete bus:", error);
+    }
+  }
 
   useEffect(() => {
     fetchBuses();
@@ -60,45 +71,45 @@ export default function ManagerBus() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Mã Bus</TableHead>
-                  <TableHead>Loại</TableHead>
+                  <TableHead>Biển số</TableHead>
                   <TableHead>Số lượng ghế</TableHead>
-                  <TableHead>Tài xế</TableHead>
                   <TableHead>Trạng thái</TableHead>
                   <TableHead>Hoạt động</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {buses.map((bus) => (
-                  <TableRow key={bus.bus.bus_id}>
-                    <TableCell>{bus.bus.bus_id}</TableCell>
-                    <TableCell>None</TableCell>
+                  <TableRow key={bus.bus_id}>
+                    <TableCell>{bus.bus_id}</TableCell>
+                    <TableCell>{bus.license_plate_number}</TableCell>
                     <TableCell className="text-left">
-                      {bus.bus.number_of_seats}
+                      {bus.number_of_seats}
                     </TableCell>
-                    <TableCell>{bus.user.name}</TableCell>
                     <TableCell>
                       <Badge
                         variant={"secondary"}
                         className={cn(
                           "text-white cursor-pointer",
-                          bus.bus.status
+                          bus.status
                             ? "bg-green-500 hover:bg-green-400"
                             : "bg-gray-500 hover:bg-gray-400"
                         )}
                       >
-                        {bus.bus.status ? "Active" : "Inactive"}
+                        {bus.status ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
                     <TableCell className="flex gap-2">
                       <Button
                         variant={"secondary"}
                         className="hover:bg-orange-400"
+                        onClick={() => {handleOpen("edit", bus)}}
                       >
                         <UserRoundPen />
                       </Button>
                       <Button
                         variant={"secondary"}
                         className="hover:bg-red-500"
+                        onClick={() => {handleDelete(bus.bus_id)}}
                       >
                         <Trash />
                       </Button>
@@ -110,7 +121,7 @@ export default function ManagerBus() {
           </CardContent>
         </Card>
       </div>
-      <BusDialog open={dialog.open} mode={dialog.mode} onOpenChange={handleClose} />
+    <BusDialog open={dialog.open} mode={dialog.mode} initialData = {selectedBus} onOpenChange={handleClose} onSuccess={fetchBuses}/>
     </div>
   );
 }

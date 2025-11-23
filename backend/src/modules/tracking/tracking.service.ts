@@ -30,10 +30,10 @@ async function broadcastPosition(
     console.error("Broadcast lỗi:", error);
   }
 }
-const lastPositions = new Map<
-  number,
-  { lat: number; lng: number; time: Date }
->();
+
+type LastPos = { lat: number; lng: number; time: Date };
+
+const lastPositions = new Map<number, LastPos>();
 /**
  * Manhattan Distance (nhanh hơn, đủ cho check di chuyển)
  * Chỉ dùng khi khoảng cách ngắn (< 10km)
@@ -53,6 +53,7 @@ function calculateManhattanDistance(
     Math.abs(lon2 - lon1) * R * Math.cos((((lat1 + lat2) / 2) * Math.PI) / 180);
   return dLat + dLon; // Manhattan: |x1-x2| + |y1-y2|
 }
+
 
 export async function handleTracking(data: tracking_realtime) {
   const now = new Date().toISOString();
@@ -94,7 +95,7 @@ export async function handleTracking(data: tracking_realtime) {
           bus_id: data.bus_id,
           latitude: data.latitude,
           longitude: data.longitude,
-          time: now,
+          timestamp: now,
         },
       ]);
       lastPositions.set(data.bus_id, {
