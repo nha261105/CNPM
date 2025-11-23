@@ -50,7 +50,7 @@ router.get(
 router.get(
   "/admin/all",
   authenticateToken,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "driver"),
   getAllSchedulesHandler
 );
 
@@ -84,6 +84,17 @@ router.delete(
   authenticateToken,
   authorizeRoles("admin"),
   deleteScheduleHandler
+);
+
+/**
+ * @route  GET /api/schedule/driver/my-schedules
+ * @desc   Lấy lịch trình của driver hiện tại
+ */
+router.get(
+  "/driver/my-schedules",
+  authenticateToken,
+  authorizeRoles("driver"),
+  getAllSchedulesHandler
 );
 
 export default router;
