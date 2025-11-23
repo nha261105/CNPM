@@ -45,7 +45,6 @@ export async function getAllCurrentPositionsHandler(
   }
 }
 
-
 /**
  * GET danh sach student di kem [busid,lat,lng]
  * Lấy cac vi tri cua student

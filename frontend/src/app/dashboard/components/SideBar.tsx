@@ -85,6 +85,11 @@ export const SideBar = ({ role }: { role: Role }) => {
             icon: <Baby />,
           },
           {
+            name: "Lịch sử chuyến đi",
+            path: `/dashboard/parent/trip-history`,
+            icon: <CalendarCheck />,
+          },
+          {
             name: "Thông báo",
             path: `/dashboard/parent/nofitications`,
             icon: <MessageCircle />,
