@@ -171,17 +171,13 @@ export async function getAllSchedule(filter?: {
   let q = supabase
     .from("schedule")
     .select(
-      `* bus (
+      `schedule_id, driver_id, bus_id, route_id, schedule_date, start_time, is_deleted, bus (
         bus_id,
         license_plate_number
       ),
       routes (
         route_id,
         route_name
-      ),
-      account:driver_id (
-        user_id,
-        user_name
       )`
     )
     .eq("is_deleted", false)
@@ -212,7 +208,8 @@ export async function getAllSchedule(filter?: {
         schedule.schedule_date,
         schedule.start_time
       );
-      return {
+      const result = {
+        schedule_id: schedule.schedule_id,
         schedule_key: `${schedule.driver_id}-${schedule.bus_id}-${schedule.route_id}-${schedule.schedule_date}`,
         driver_id: schedule.driver_id,
         bus_id: schedule.bus_id,
@@ -223,6 +220,7 @@ export async function getAllSchedule(filter?: {
         status: status,
         is_active: status === "in_progress",
       };
+      return result;
     })
   );
   return scheduleWithStatus;

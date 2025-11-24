@@ -7,5 +7,6 @@ router.get("/", busController.getBuses);
 router.put("/:id", busController.updateBus);
 router.post("/", busController.addBus);
 router.delete("/:id", busController.deleteBus);
+router.get("/location", busController.getBusLocationByParentId);
 
 export default router;

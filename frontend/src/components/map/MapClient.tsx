@@ -37,8 +37,14 @@ const studentIcon = L.icon({
 });
 
 const SCHOOL: [number, number] = [10.76006, 106.68229];
-
-export default function MapClient() {
+type StudentMarker = { name: string; pos: [number, number]; index: number };
+type BusPos = { lat: number; lng: number };
+interface MapClientProps {
+  studentMarkers?: StudentMarker[];
+  busPos?: BusPos;
+  route?: [number, number][];
+}
+export default function MapClient(props: MapClientProps) {
   const [route, setRoute] = useState<[number, number][]>([]);
   const [studentMarkers, setStudentMarkers] = useState<
     Array<{ name: string; pos: [number, number]; index: number }>

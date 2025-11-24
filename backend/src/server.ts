@@ -3,7 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 
 import supabase from "./config/supabaseClient.js";
-// import { startMQTT } from "./modules/mqtt/mqtt.service.js";
+import { startMQTT } from "./modules/mqtt/mqtt.service.js";
 
 import authRoutes from "./modules/auth/auth.routes.js";
 import overviewRoutes from "./modules/overview/overview.route.js";
@@ -18,6 +18,7 @@ import userRoutes from "./modules/user/user.routes.js";
 import busRoutes from "./modules/bus/bus.routes.js";
 import routeRoutes from "./modules/routes/route.routes.js";
 import pickupPointRoutes from "./modules/pickup_point/pickup_point.routes.js";
+import attendanceLogRoutes from "./modules/attendance_log/attendance_log.route.js";
 
 dotenv.config();
 
@@ -27,7 +28,30 @@ const server = express();
 const port: number | string = process.env.PORT || 5000;
 
 //middlewares
-server.use(cors());
+// ----- CORS -----
+const allowOrigins = [
+  "http://localhost:3000",
+  "https://cnpm-uh56.onrender.com",
+  "https://cnpm-vert.vercel.app",
+];
+
+server.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true); // Postman / server-side
+      if (allowOrigins.includes(origin)) return cb(null, true);
+      return cb(new Error("CORS blocked: " + origin));
+    },
+    credentials: true, // cần nếu dùng cookie / session
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+server.use((req, res, next) => {
+  res.header("Access-Control-Allow-Credentials", "true");
+  next();
+});
 server.use(express.json());
 
 // Routes
@@ -49,10 +73,7 @@ server.use("/api/users", userRoutes);
 server.use("/api/bus", busRoutes);
 server.use("/api/routes", routeRoutes);
 server.use("/api/pickup_point", pickupPointRoutes);
-
-// ------------------- TRIP HISTORY ROUTE --------------------------
-server.use("/api", tripHistoryRoutes);
-
+server.use("/api/attendance-log", attendanceLogRoutes);
 // ------------------- DRIVER ROUTE --------------------------
 server.use("/api", StudentsRoute);
 
