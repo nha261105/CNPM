@@ -22,7 +22,7 @@ import attendanceLogRoutes from "./modules/attendance_log/attendance_log.route.j
 
 dotenv.config();
 
-// startMQTT();
+startMQTT();
 
 const server = express();
 const port: number | string = process.env.PORT || 5000;
@@ -76,6 +76,7 @@ server.use("/api/pickup_point", pickupPointRoutes);
 server.use("/api/attendance-log", attendanceLogRoutes);
 // ------------------- DRIVER ROUTE --------------------------
 server.use("/api", StudentsRoute);
+server.use("/api", tripHistoryRoutes);
 
 // ------------------- PARENT ROUTE --------------------------
 server.use("/api", MessageRoute);
