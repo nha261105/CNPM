@@ -6,7 +6,7 @@ import { StudentsApi } from "@/api/studentsApi";
 import { MapPin, MapPinned } from "lucide-react";
 import UpdatePickupPointDialog from "@/components/dialog/UpdatePickupPointDialog";
 import { Description } from "@radix-ui/react-dialog";
-
+import { storage } from "@/help/sessionStorage";
 type StudentsType = {
   student_id: number;
   parent_id: number;
@@ -43,7 +43,7 @@ export default function ManagerChildrenStatus() {
   const [indexPickup, setIndexPickup] = useState(0);
 
   useEffect(() => {
-    const storedUser: string | null = localStorage.getItem("user");
+    const storedUser: string | null = storage.getUser()
     const data: User = JSON.parse(storedUser!);
     setUserParent(data);
   }, []);

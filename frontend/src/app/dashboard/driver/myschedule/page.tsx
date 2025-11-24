@@ -9,7 +9,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-const MapClient = dynamic(() => import("@/components/map/MapClient"), {
+const DriverMap = dynamic(() => import("@/components/map/DriverMap"), {
   ssr: false,
 });
 import { Progress } from "@/components/ui/progress";
@@ -20,7 +20,6 @@ import { driverScheduleService, DriverSchedule } from "@/api/schedule_driver";
 import { useQuery } from "@tanstack/react-query";
 import axiosClient from "@/lib/axiosClient";
 import { latLng } from "leaflet";
-import DriverMap from "@/components/map/DriverMap";
 interface Checkpoint {
   id: number;
   mark: string;

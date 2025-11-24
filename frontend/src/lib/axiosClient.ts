@@ -1,9 +1,9 @@
 import axios from "axios";
-
-console.log("BASE URL:", process.env.NEXT_PUBLIC_BE_API_URL);
+import { storage } from "@/help/sessionStorage";
+console.log("BASE URL:", process.env.NEXT_PUBLIC_EXPRESS_API_ON_RENDER_URL);
 
 const axiosClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_BE_API_URL!,
+  baseURL: process.env.NEXT_PUBLIC_EXPRESS_API_ON_RENDER_URL!,
   headers: {
     "Content-Type": "application/json",
   },
@@ -13,7 +13,7 @@ const axiosClient = axios.create({
 axiosClient.interceptors.request.use(
   (config) => {
     // Lấy token từ localStorage
-    const token = localStorage.getItem("authToken");
+    const token = storage.getToken();
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
