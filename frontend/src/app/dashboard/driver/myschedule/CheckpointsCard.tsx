@@ -4,6 +4,7 @@ type Points = {
   location: string;
   time: string;
   student: number;
+  completed?: boolean;
 };
 import { CircleCheck } from "lucide-react";
 import { useState } from "react";
@@ -17,10 +18,10 @@ const CheckpointsCard = ({
   location,
   time,
   student,
+  completed = false,
   selected,
   onSelect,
 }: CheckpointsCardProps) => {
-  const [completed, setCompleted] = useState(false);
   return (
     <div className="space-y-3">
       <div
@@ -33,7 +34,7 @@ const CheckpointsCard = ({
             : "border-gray-200 bg-blue-5"
         }`}
       >
-        <div className="flex items-start justify-between">
+        <div className="flex items-center justify-between">
           <div className="flex flex-row gap-4">
             <div
               className={`w-10 h-10 shrink-0 rounded-full bg-gray-300 text-white flex items-center justify-center mt-2 ${
@@ -46,29 +47,20 @@ const CheckpointsCard = ({
                 <p className="text-base font-semibold leading-none">{id}</p>
               )}
             </div>
-            <div className="flex flex-col gap-2 items-start">
+            <div className="flex flex-col gap-2 items-center">
               <p className="text-xl font-normal">{mark}</p>
               <p className="text-lg font-normal text-gray-700">{location}</p>
               <div className="flex flex-row gap-4">
-                <p className="text-md font-normal">⏰{time}</p>
-                <p className="text-md font-normal">👥{student} student(s)</p>
+                {/* <p className="text-md font-normal">⏰{time}</p>
+                <p className="text-md font-normal">👥{student} student(s)</p> */}
               </div>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setCompleted((v) => !v);
-            }}
-            className={`${
-              completed ? "bg-green-700 hidden" : "bg-green-600"
-            } rounded-xl px-3 py-2 hover:bg-green-700`}
-          >
-            <p className="text-md text-white font-semibold">
-              {completed ? "Completed" : "Mark complete"}
-            </p>
-          </button>
+          {completed && (
+            <div className="bg-green-600 rounded-xl px-3 py-2">
+              <p className="text-md text-white font-semibold">Completed</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

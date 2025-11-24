@@ -1,6 +1,8 @@
 "use client";
+import { timeStamp } from "console";
 import { CircleCheck, CircleCheckBig, TriangleAlert } from "lucide-react";
-import { useState } from "react";
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
 const dataCheck = [
   {
     mission: "Check tire pressure",
@@ -24,21 +26,54 @@ const dataCheck = [
     mission: "Check fire extinguisher",
   },
 ];
+const VEHICLE_CHECK_KEY = "vehicle_check_completed";
 const CheckVehicle = () => {
+  //const router = useRouter();
   const [checkedItems, setCheckedItems] = useState<boolean[]>(
     new Array(dataCheck.length).fill(false)
   );
-
+  useEffect(() => {
+    const saved = localStorage.getItem(VEHICLE_CHECK_KEY);
+    if (saved) {
+      try {
+        const savedData = JSON.parse(saved);
+        if (savedData.completed && savedData.items) {
+          setCheckedItems(savedData.items);
+        }
+      } catch (error) {
+        console.log("khongo load duoc check xe");
+      }
+    }
+  }, []);
   const handleCheckboxChange = (index: number) => {
     const newCheckedItems = [...checkedItems];
     newCheckedItems[index] = !newCheckedItems[index];
     setCheckedItems(newCheckedItems);
+
+    localStorage.setItem(
+      VEHICLE_CHECK_KEY,
+      JSON.stringify({
+        items: newCheckedItems,
+        completed: newCheckedItems.every((item) => item),
+        timeStamp: new Date().toISOString(),
+      })
+    );
   };
 
-  const handleCheckBoxChange = (index: number) => {
-    const newCheckedItems = [...checkedItems];
-    newCheckedItems[index] = !newCheckedItems[index];
-    setCheckedItems(newCheckedItems);
+  const handleCompleteCheck = () => {
+    if (allCompleted) {
+      localStorage.setItem(
+        VEHICLE_CHECK_KEY,
+        JSON.stringify({
+          items: checkedItems,
+          completed: true,
+          timeStamp: new Date().toISOString(),
+        })
+      );
+      alert(
+        "Kiểm tra xe thành công có thể về lịch trình hiện tại để tiến hành chạy"
+      );
+    }
   };
 
   const countCompleted = checkedItems.filter((item) => item).length;

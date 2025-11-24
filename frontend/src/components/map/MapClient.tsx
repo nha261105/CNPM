@@ -87,7 +87,7 @@ export default function MapClient(props: MapClientProps) {
             return {
               name: s?.student_name || `Student ${s?.student_id}`,
               pos: [lat, lng] as [number, number],
-              index: idx,
+              // index: idx,
             };
           })
           .filter(Boolean);

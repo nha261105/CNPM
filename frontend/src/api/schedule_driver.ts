@@ -2,6 +2,7 @@ import axiosClient from "@/lib/axiosClient";
 
 export interface DriverSchedule {
   schedule_key: string;
+  schedule_id: number;
   driver_id: number;
   bus_id: number;
   bus_number: string;
