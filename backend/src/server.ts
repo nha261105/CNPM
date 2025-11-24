@@ -71,11 +71,12 @@ server.use("/api/admin/nofitications", nofiticationRoute);
 server.use("/api/schedule", scheduleRoutes);
 server.use("/api/users", userRoutes);
 server.use("/api/bus", busRoutes);
-server.use("/api/routes", routeRoutes);
+server.use("/api/routes", routeRoutes); 
 server.use("/api/pickup_point", pickupPointRoutes);
 server.use("/api/attendance-log", attendanceLogRoutes);
 // ------------------- DRIVER ROUTE --------------------------
 server.use("/api", StudentsRoute);
+server.use("/api", tripHistoryRoutes);
 
 // ------------------- PARENT ROUTE --------------------------
 server.use("/api", MessageRoute);

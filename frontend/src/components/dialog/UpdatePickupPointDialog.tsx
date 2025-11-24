@@ -17,10 +17,13 @@ import {
   TileLayer,
   useMapEvents,
 } from "react-leaflet";
-import TrackingTest from "../map/TrackingTest";
-import MapClient from "../map/MapClient";
 import { Dot, LocateFixed, MapPin } from "lucide-react";
 import { PickupPointApi } from "@/api/pickupPointApi";
+import dynamic from "next/dynamic";
+
+const MapClient = dynamic(() => import("@/components/map/MapClient"), {
+  ssr: false,
+});
 
 interface PickupPointDialogProps {
   open: boolean;

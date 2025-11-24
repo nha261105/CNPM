@@ -17,13 +17,13 @@ export default function TrackingTest({
   timestamp?: string;
 }) {
   const { lat, lng } = data;
-  const lastPosRef = useRef<[number , number]>([lat,lng]);
+  const lastPosRef = useRef<[number, number]>([lat, lng]);
   const [prevPos, setPrevPos] = useState<[number, number]>([lat, lng]);
 
   useEffect(() => {
     if (prevPos[0] !== lat || prevPos[1] !== lng) {
       setPrevPos(lastPosRef.current);
-      lastPosRef.current = [lat,lng]
+      lastPosRef.current = [lat, lng];
     }
   }, [lat, lng]);
 
@@ -32,7 +32,7 @@ export default function TrackingTest({
       icon={busIcon}
       position={[lat, lng]}
       previousPosition={prevPos}
-      duration={100}
+      duration={10}
     />
   );
 }
