@@ -94,7 +94,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role: accountType || role,
       };
 
-      // ✅ Thay localStorage bằng sessionStorage
       storage.setUser(userData);
       storage.setToken(token);
 
