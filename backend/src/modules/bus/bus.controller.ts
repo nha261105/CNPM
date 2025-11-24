@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import * as busService from './bus.service.js';
+import * as busService from "./bus.service.js";
 import { getBusLocationByParentIdService } from "./bus.service.js";
 
 export const getBuses = async (req: Request, res: Response) => {

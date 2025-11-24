@@ -13,6 +13,7 @@ import MessageRoute from "./modules/message/message.router.js";
 import StudentsRoute from "./modules/students/students.router.js";
 import nofiticationRoute from "./modules/nofications/nofitications.route.js";
 import scheduleRoutes from "./modules/schedule/schedule.routes.js";
+import tripHistoryRoutes from "./modules/trip_history/trip_history.routes.js";
 import userRoutes from "./modules/user/user.routes.js";
 import busRoutes from "./modules/bus/bus.routes.js";
 import routeRoutes from "./modules/routes/route.routes.js";
@@ -21,7 +22,7 @@ import attendanceLogRoutes from "./modules/attendance_log/attendance_log.route.j
 
 dotenv.config();
 
-startMQTT();
+// startMQTT();
 
 const server = express();
 const port: number | string = process.env.PORT || 5000;
