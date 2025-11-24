@@ -88,6 +88,10 @@ export default function MapClient(props: MapClientProps) {
             return {
               name: s?.student_name || `Student ${s?.student_id}`,
               pos: [lat, lng] as [number, number],
+<<<<<<< HEAD
+              // index: idx,
+=======
+>>>>>>> 955baed9369508e0aa3f524c4640f1fcf3660e5f
             };
           })
           .filter(Boolean);
