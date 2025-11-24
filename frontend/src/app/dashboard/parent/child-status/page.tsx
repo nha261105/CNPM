@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { StudentsApi } from "@/api/studentsApi";
+import { MapPin, MapPinned } from "lucide-react";
+import UpdatePickupPointDialog from "@/components/dialog/UpdatePickupPointDialog";
+import { Description } from "@radix-ui/react-dialog";
 
 type StudentsType = {
   student_id: number;
@@ -30,6 +33,14 @@ type User = {
 
 export default function ManagerChildrenStatus() {
   const [userParent, setUserParent] = useState<User>();
+  const [DBStudents, setDBStudents] = useState<StudentsType[]>();
+  const [openPickupDialog, setOpenPickupDialog] = useState(false);
+  const [latitude, setLatitude] = useState(0);
+  const [longitude, setLongitude] = useState(0);
+  const [childName, setChildName] = useState("");
+  const [description, setDescription] = useState("");
+  const [idPickUp, setIdPickup] = useState(0);
+  const [indexPickup, setIndexPickup] = useState(0);
 
   useEffect(() => {
     const storedUser: string | null = localStorage.getItem("user");
@@ -38,7 +49,7 @@ export default function ManagerChildrenStatus() {
   }, []);
 
   const {
-    data: DBStudents,
+    data: DBLoadStudents,
     error,
     isLoading,
     refetch,
@@ -60,8 +71,8 @@ export default function ManagerChildrenStatus() {
   });
 
   useEffect(() => {
-    console.log(DBStudents);
-  }, [DBStudents]);
+    setDBStudents(DBLoadStudents);
+  }, [DBLoadStudents]);
 
   if (isLoading) return <p className="text-lg text-gray-500">Đang tải...</p>;
   if (error)
@@ -96,7 +107,9 @@ export default function ManagerChildrenStatus() {
               <div className="w-[50%] flex flex-col justify-between gap-2.5">
                 <div className="">
                   <div className="text-sm text-gray-500">Biển số xe</div>
-                  <div className="text-base">{item.bus.license_plate_number}</div>
+                  <div className="text-base">
+                    {item.bus.license_plate_number}
+                  </div>
                 </div>
                 <div className="">
                   <div className="text-sm text-gray-500">Số ghế</div>
@@ -104,15 +117,86 @@ export default function ManagerChildrenStatus() {
                 </div>
               </div>
               <div className="w-[50%] flex flex-col justify-between gap-2.5">
-                <div className="">
-                  <div className="text-sm text-gray-500">Điểm đón</div>
-                  <div className="text-base">{item.pickup_point.description}</div>
+                <div className="flex flex-row gap-3">
+                  <div className="">
+                    <div className="text-sm text-gray-500">Điểm đón</div>
+                    <div className="bg-blue-50 w-fit p-3 rounded-lg flex flex-row gap-2 items-center">
+                      <MapPin
+                        strokeWidth={1.5}
+                        size={20}
+                        className="text-blue-500"
+                      />
+                      <div className="text-sm text-gray-800">
+                        {item.pickup_point.description}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="">
+                    <div className="text-sm text-gray-500">Tọa độ</div>
+                    <div className="bg-blue-50 w-fit p-3 rounded-lg flex flex-row gap-2 items-center">
+                      <div className="text-sm text-gray-800">
+                        ({item.pickup_point.latitude},{" "}
+                        {item.pickup_point.longitude})
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div
+                  onClick={() => {
+                    setChildName(item.student_name);
+                    setLatitude(item.pickup_point.latitude);
+                    setLongitude(item.pickup_point.longitude);
+                    setDescription(item.pickup_point.description);
+                    setIdPickup(item.pickup_point.pickup_point_id);
+                    setIndexPickup(index);
+                    setOpenPickupDialog(true);
+                  }}
+                  className="cursor-pointer border border-gray-500 rounded-lg p-2 flex items-center w-fit gap-2 group hover:bg-green-500 hover:border-green-500 active:bg-green-600"
+                >
+                  <MapPinned
+                    strokeWidth={1.5}
+                    size={20}
+                    className="text-black group-hover:text-white"
+                  />
+                  <div className="text-sm font-semibold group-hover:text-white">
+                    Cập nhật vị trí đón
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         );
       })}
+
+      {/* Dialog */}
+      <UpdatePickupPointDialog
+        open={openPickupDialog}
+        onOpenChange={setOpenPickupDialog}
+        latitude={latitude} // kinh độ ban đầu
+        longitude={longitude} // vĩ độ ban đầu
+        child_name={childName}
+        description={description}
+        idPickUp={idPickUp}
+        onSuccess={(data) => {
+          console.log("Dữ liệu đã chọn:", data);
+
+          setDBStudents((prev) =>
+            (prev ?? []).map((item) =>
+              item.pickup_point.pickup_point_id === data.idPickUp
+                ? {
+                    ...item,
+                    pickup_point: {
+                      ...item.pickup_point,
+                      latitude: data.latitude,
+                      longitude: data.longitude,
+                      description: data.description,
+                    },
+                  }
+                : item
+            )
+          );
+        }}
+      />
     </div>
   );
 }

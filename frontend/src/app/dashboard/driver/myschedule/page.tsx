@@ -224,9 +224,9 @@ export default function ManagerMySchedule() {
                 Không có checkpoint nào
               </p>
             ) : (
-              checkpoints.map((checkpoint) => (
+              checkpoints.map((checkpoint, index) => (
                 <CheckpointsCard
-                  key={checkpoint.id}
+                  key={index}
                   id={checkpoint.id}
                   mark={checkpoint.mark}
                   location={checkpoint.location}
