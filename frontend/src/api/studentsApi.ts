@@ -17,9 +17,15 @@ export class StudentsApi {
 
   // Lấy lịch sử chuyến đi của học sinh
   static async getTripHistoryByStudentId(student_id: number) {
-    const res = await axiosClient.get("/api/students/trip-history", {
+    const res = await axiosClient.get("/api/trip-history", {
       params: { student_id },
     });
+    return res.data;
+  }
+
+  // Lấy lịch sử chuyến đi của tất cả học sinh thuộc parent
+  static async getTripHistoryByParentId(parent_id: number) {
+    const res = await axiosClient.get(`/api/trip-history/parent/${parent_id}`);
     return res.data;
   }
 }

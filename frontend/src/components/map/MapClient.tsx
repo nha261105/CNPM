@@ -62,16 +62,17 @@ export default function MapClient(props: MapClientProps) {
     ? simPos
     : { lat: SCHOOL[0], lng: SCHOOL[1] };
 
-  // Nếu không truyền props thì giữ nguyên logic fetch cũ
+  // 1. Fetch student pickup points từ backend
   useEffect(() => {
-    if (props.studentMarkers && props.busPos && props.route) return;
     let mounted = true;
+
     (async () => {
       try {
         const res = await axiosClient.get(
           `/api/admin/realtime/${BUS_ID}/students`
         );
         if (!mounted) return;
+
         const students = res?.data?.data ?? [];
 
         const studentPointsWithNames: Array<{
@@ -87,7 +88,10 @@ export default function MapClient(props: MapClientProps) {
             return {
               name: s?.student_name || `Student ${s?.student_id}`,
               pos: [lat, lng] as [number, number],
+<<<<<<< HEAD
               // index: idx,
+=======
+>>>>>>> 955baed9369508e0aa3f524c4640f1fcf3660e5f
             };
           })
           .filter(Boolean);
@@ -115,15 +119,20 @@ export default function MapClient(props: MapClientProps) {
 
         const osrmRoute = await getRouteFromOSRM(waypoints);
         if (!mounted) return;
-        if (osrmRoute && osrmRoute.length > 0) setRoute(osrmRoute);
+
+        if (osrmRoute && osrmRoute.length > 0) {
+          setRoute(osrmRoute);
+          console.log("Route geometry received, points:", osrmRoute.length);
+        }
       } catch (err) {
         console.error("Error fetching students or route:", err);
       }
     })();
+
     return () => {
       mounted = false;
     };
-  }, [props.studentMarkers, props.busPos, props.route]);
+  }, []);
 
   // 2. TỰ ĐỘNG chạy khi có route
   useEffect(() => {
@@ -182,9 +191,11 @@ export default function MapClient(props: MapClientProps) {
           attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+
         <Marker position={SCHOOL}>
           <Popup>School</Popup>
         </Marker>
+
         {studentMarkers.map((student) => (
           <Marker key={student.index} position={student.pos} icon={studentIcon}>
             <Popup>
@@ -195,6 +206,7 @@ export default function MapClient(props: MapClientProps) {
             </Popup>
           </Marker>
         ))}
+
         {route.length > 0 && <Polyline positions={route} color="blue" />}
 
         <TrackingTest data={busCurrentPos} timestamp={realtimePos?.timestamp} />

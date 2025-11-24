@@ -225,7 +225,7 @@ export default function BusGp() {
         <div className="text-lg">Real-Time Bus Location</div>
         <div className="rounded-xl border border-dashed border-[#9e9d9d] bg-[#eff7fe]">
           <div className="w-full flex justify-center items-center p-4">
-            <div className="w-full" style={{ minHeight: 400 }}>
+            <div className="w-full" style={{ minHeight: 600 }}>
               {selectedStudent && selectedStudent.pickup_point ? (
                 <StudentMap
                   latitude={Number(selectedStudent.pickup_point.latitude)}
