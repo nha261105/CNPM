@@ -67,11 +67,6 @@ export const SideBar = ({ role }: { role: Role }) => {
             path: `/dashboard/admin/nofitications`,
             icon: <Bell />,
           },
-          {
-            name: "Thống kê",
-            path: `/dashboard/admin/analytics`,
-            icon: <ChartNoAxesCombined />,
-          },
         ],
         parent: [
           {

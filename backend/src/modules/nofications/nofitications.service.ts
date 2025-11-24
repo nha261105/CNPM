@@ -37,7 +37,7 @@ export async function sendMessageFromAdminToParent(
   try {
     const new_nofitications = {
       sender_id: adminId,
-      receiver_id: 3,
+      receiver_id: 94,
       message_content: mes,
     };
     const { data, error } = await supabase

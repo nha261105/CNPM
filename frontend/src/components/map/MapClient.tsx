@@ -86,8 +86,7 @@ export default function MapClient(props: MapClientProps) {
             if (!isFinite(lat) || !isFinite(lng)) return null;
             return {
               name: s?.student_name || `Student ${s?.student_id}`,
-              pos: [lat, lng] as [number, number],
-              index: idx,
+              pos: [lat, lng] as [number, number]
             };
           })
           .filter(Boolean);
@@ -123,7 +122,7 @@ export default function MapClient(props: MapClientProps) {
     return () => {
       mounted = false;
     };
-  }, [props.studentMarkers, props.busPos, props.route]);
+  }, []); 
 
   // 2. TỰ ĐỘNG chạy khi có route
   useEffect(() => {
