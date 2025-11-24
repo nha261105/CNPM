@@ -43,9 +43,8 @@ export default function ManagerChildrenStatus() {
   const [indexPickup, setIndexPickup] = useState(0);
 
   useEffect(() => {
-    const storedUser: string | null = storage.getUser()
-    const data: User = JSON.parse(storedUser!);
-    setUserParent(data);
+    const storedUser = storage.getUser()
+    setUserParent(storedUser);
   }, []);
 
   const {
