@@ -17,7 +17,6 @@ import {
   TileLayer,
   useMapEvents,
 } from "react-leaflet";
-import TrackingTest from "../map/TrackingTest";
 import { Dot, LocateFixed, MapPin } from "lucide-react";
 import { PickupPointApi } from "@/api/pickupPointApi";
 import dynamic from "next/dynamic";
