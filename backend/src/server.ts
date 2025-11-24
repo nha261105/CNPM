@@ -4,10 +4,6 @@ import dotenv from "dotenv";
 
 import supabase from "./config/supabaseClient.js";
 // import { startMQTT } from "./modules/mqtt/mqtt.service.js";
-<<<<<<< HEAD
-=======
-
->>>>>>> dev
 
 import authRoutes from "./modules/auth/auth.routes.js";
 import overviewRoutes from "./modules/overview/overview.route.js";
@@ -17,15 +13,11 @@ import MessageRoute from "./modules/message/message.router.js";
 import StudentsRoute from "./modules/students/students.router.js";
 import nofiticationRoute from "./modules/nofications/nofitications.route.js";
 import scheduleRoutes from "./modules/schedule/schedule.routes.js";
+import tripHistoryRoutes from "./modules/trip_history/trip_history.routes.js";
 import userRoutes from "./modules/user/user.routes.js";
-<<<<<<< HEAD
 import busRoutes from "./modules/bus/bus.routes.js";
 import routeRoutes from "./modules/routes/route.routes.js";
-=======
-import busRoutes from "./modules/bus/bus.routes.js"
-import routeRoutes from "./modules/routes/route.routes.js"
-import pickupPointRoutes from "./modules/pickup_point/pickup_point.routes.js"
->>>>>>> d336a6382dfbb7d151b9ee12a11bc0c8b500fe99
+import pickupPointRoutes from "./modules/pickup_point/pickup_point.routes.js";
 
 dotenv.config();
 
@@ -53,16 +45,13 @@ server.use("/api/admin/overview", overviewRoutes);
 server.use("/api/admin/realtime", realtimeRoutes);
 server.use("/api/admin/nofitications", nofiticationRoute);
 server.use("/api/schedule", scheduleRoutes);
-<<<<<<< HEAD
 server.use("/api/users", userRoutes);
 server.use("/api/bus", busRoutes);
 server.use("/api/routes", routeRoutes);
-=======
-server.use("/api/users", userRoutes)
-server.use("/api/bus", busRoutes)
-server.use("/api/routes", routeRoutes)
-server.use("/api/pickup_point", pickupPointRoutes)
->>>>>>> d336a6382dfbb7d151b9ee12a11bc0c8b500fe99
+server.use("/api/pickup_point", pickupPointRoutes);
+
+// ------------------- TRIP HISTORY ROUTE --------------------------
+server.use("/api", tripHistoryRoutes);
 
 // ------------------- DRIVER ROUTE --------------------------
 server.use("/api", StudentsRoute);
