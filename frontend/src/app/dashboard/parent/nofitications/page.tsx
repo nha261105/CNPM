@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Bell, Send } from "lucide-react";
 import { MessageApi } from "@/api/messageApi";
-
+import { storage } from "@/help/sessionStorage";
 type User = {
   id: number;
   name: string;
@@ -43,7 +43,7 @@ export default function Nofitications() {
   const [DBMessage, setDBMessage] = useState<Messages>();
 
   useEffect(() => {
-    const storedUser: string | null = localStorage.getItem("user");
+    const storedUser: string | null = storage.getUser();
     const data: User = JSON.parse(storedUser!);
     setUserParent(data);
   }, []);

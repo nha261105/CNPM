@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import type { User, UserRole, AuthContextType } from "@/types/auth";
 import axiosClient from "@/lib/axiosClient";
+import { storage } from "@/help/sessionStorage";
 
 export const AuthContext = createContext<AuthContextType | undefined>(
   undefined
@@ -13,15 +14,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    const storedToken = localStorage.getItem("authToken");
+    const storedUser = storage.getUser();
+    const storedToken = storage.getToken();
 
     if (storedUser && storedToken) {
       try {
-        setUser(JSON.parse(storedUser));
+        setUser(storedUser);
       } catch (error) {
-        localStorage.removeItem("user");
-        localStorage.removeItem("authToken");
+        storage.clear();
         console.log("Errors: ", error);
       }
     }
@@ -49,7 +49,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const data = response.data;
 
-      // ✅ Kiểm tra nhiều format response
       const isSuccess =
         data.ok === true || data.success === true || response.status === 200;
 
@@ -58,18 +57,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
 
-      // ✅ Flexible data extraction
       let userId, userName, token, accountType;
 
-      // Try different response structures
       if (data.data) {
-        // Structure: { data: { user: {...}, token: "..." } }
         userId = data.data.user?.user_id || data.data.user?.id;
         userName = data.data.user?.user_name || data.data.user?.username;
         token = data.data.token;
         accountType = data.data.accountType || data.data.user?.accountType;
       } else {
-        // Structure: { user: {...}, token: "..." }
         userId = data.user?.user_id || data.user?.id;
         userName = data.user?.user_name || data.user?.username;
         token = data.token;
@@ -83,7 +78,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         accountType,
       });
 
-      // ✅ Validate essential fields
       if (!userId || !userName || !token) {
         console.error("❌ Missing essential data:", {
           userId,
@@ -100,9 +94,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role: accountType || role,
       };
 
-      // Save to localStorage
-      localStorage.setItem("user", JSON.stringify(userData));
-      localStorage.setItem("authToken", token);
+      // ✅ Thay localStorage bằng sessionStorage
+      storage.setUser(userData);
+      storage.setToken(token);
 
       setUser(userData);
       console.log("✅ LOGIN SUCCESS:", userData);
@@ -125,8 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = (): void => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("authToken");
+    storage.clear();
     setUser(null);
   };
 

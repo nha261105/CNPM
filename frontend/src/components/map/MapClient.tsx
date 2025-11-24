@@ -52,7 +52,7 @@ export default function MapClient(props: MapClientProps) {
   const [simPos, setSimPos] = useState<{ lat: number; lng: number } | null>(
     null
   );
-  const BUS_ID = 2;
+  const BUS_ID = 92;
 
   const realtimePos = useBusRealtime(BUS_ID);
 
@@ -167,12 +167,12 @@ export default function MapClient(props: MapClientProps) {
           console.error("Auto-simulator error:", err);
         }
       }
-      t += 0.05;
+      t += 0.1;
       if (t >= 1) {
         t = 0;
         currentIndex++;
       }
-    }, 50);
+    }, 30);
 
     return () => {
       console.log(" Stopping auto GPS simulator");
