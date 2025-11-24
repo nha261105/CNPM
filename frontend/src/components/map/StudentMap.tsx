@@ -29,7 +29,7 @@ export default function StudentMap({
     <MapContainer
       center={[latitude, longitude]}
       zoom={16}
-      style={{ height: "300px", width: "100%" }}
+      style={{ height: "600px", width: "100%" }}
       scrollWheelZoom={false}
     >
       <TileLayer
