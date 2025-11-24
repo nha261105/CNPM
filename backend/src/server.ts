@@ -22,7 +22,7 @@ import attendanceLogRoutes from "./modules/attendance_log/attendance_log.route.j
 
 dotenv.config();
 
-// startMQTT();
+startMQTT();
 
 const server = express();
 const port: number | string = process.env.PORT || 5000;
