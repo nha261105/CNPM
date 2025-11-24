@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Bell, Send } from "lucide-react";
 import { adminNofitication } from "@/api/adminNofitications";
+import { storage } from "@/help/sessionStorage";
 
 type User = {
   id: number;
@@ -44,7 +45,7 @@ export default function AdminNofitications() {
   const [recipientType, setRecipientType] = useState("");
 
   useEffect(() => {
-    const raw = localStorage.getItem("user");
+    const raw = storage.getUser();
     if (raw) {
       setUserAdmin(JSON.parse(raw));
     }
