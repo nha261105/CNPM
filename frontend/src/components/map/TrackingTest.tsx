@@ -32,7 +32,7 @@ export default function TrackingTest({
       icon={busIcon}
       position={[lat, lng]}
       previousPosition={prevPos}
-      duration={10}
+      duration={500}
     />
   );
 }

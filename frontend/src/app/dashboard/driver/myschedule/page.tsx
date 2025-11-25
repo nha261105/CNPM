@@ -19,7 +19,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { driverScheduleService, DriverSchedule } from "@/api/schedule_driver";
 import { useQuery } from "@tanstack/react-query";
 import axiosClient from "@/lib/axiosClient";
-import { latLng } from "leaflet";
 interface Checkpoint {
   id: number;
   mark: string;
