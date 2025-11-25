@@ -156,6 +156,7 @@ export default function MapClient(props: MapClientProps) {
         console.log(
           `vi tri xe bus hien tai: [${lat.toFixed(6)}, ${lng.toFixed(6)}]`
         );
+
         try {
           await axiosClient.post("/api/tracking", {
             bus_id: BUS_ID,
@@ -167,12 +168,12 @@ export default function MapClient(props: MapClientProps) {
           console.error("Auto-simulator error:", err);
         }
       }
-      t += 0.1;
+      t += 0.05;
       if (t >= 1) {
         t = 0;
         currentIndex++;
       }
-    }, 30);
+    }, 200);
 
     return () => {
       console.log(" Stopping auto GPS simulator");
