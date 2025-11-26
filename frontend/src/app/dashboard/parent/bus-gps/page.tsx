@@ -7,6 +7,7 @@ import { Navigation, Clock, Phone, Send, CircleX } from "lucide-react";
 import { BusApi } from "@/api/busApi";
 import { StudentsApi } from "@/api/studentsApi";
 import { MessageApi } from "@/api/messageApi";
+import { storage } from "@/help/sessionStorage";
 
 // Emergency contacts (cứng, có thể lấy từ config sau)
 const emergencyContacts = [
@@ -72,11 +73,8 @@ export default function BusGp() {
   // ...existing code...
 
   useEffect(() => {
-    const storedUser: string | null = localStorage.getItem("user");
-    if (storedUser) {
-      const data: User = JSON.parse(storedUser);
-      setUserParent(data);
-    }
+    const storedUser = storage.getUser()
+    setUserParent(storedUser);
   }, []);
 
   // Lấy danh sách học sinh
