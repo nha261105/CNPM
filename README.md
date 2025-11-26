@@ -53,7 +53,7 @@ pm
 ### Kiem tra version:
 
 ```bash
-node -v        # v22.14.0
+node -v        # v22.14.0 -
 npm -v         # 10.9.2
 docker --version
 docker compose version
