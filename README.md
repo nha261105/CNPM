@@ -1,6 +1,6 @@
 # Cong Nghe Phan Men - Smart Bus System -
 
-> Thong tin thanh vien nhom
+> Thong tin thanh vien nhom -
 >
 > |    MSSV    |      Ho ten       |
 > | :--------: | :---------------: |
