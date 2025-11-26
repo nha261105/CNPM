@@ -43,9 +43,8 @@ export default function Nofitications() {
   const [DBMessage, setDBMessage] = useState<Messages>();
 
   useEffect(() => {
-    const storedUser: string | null = storage.getUser();
-    const data: User = JSON.parse(storedUser!);
-    setUserParent(data);
+    const storedUser = storage.getUser()
+    setUserParent(storedUser);
   }, []);
 
   const {

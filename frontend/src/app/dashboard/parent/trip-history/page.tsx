@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { StudentsApi } from "@/api/studentsApi";
+import { storage } from "@/help/sessionStorage";
 
 type User = {
   id: number;
@@ -62,11 +63,8 @@ export default function TripHistory() {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
   useEffect(() => {
-    const storedUser: string | null = localStorage.getItem("user");
-    if (storedUser) {
-      const data: User = JSON.parse(storedUser);
-      setUserParent(data);
-    }
+    const storedUser = storage.getUser()
+    setUserParent(storedUser);
   }, []);
 
   // Lấy danh sách học sinh
