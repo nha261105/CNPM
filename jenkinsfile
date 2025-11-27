@@ -130,7 +130,7 @@ pipeline {
             when { branch 'main' }
             steps {
                 echo 'Triggering Vercel deploy hook...'
-                withCredentials([string(credentialsId: 'VERCEL_DEPLOY_HOOK', variable: 'VERCEL_HOOK')]) {
+                withCredentials([string(credentialsId: 'vercel-id', variable: 'VERCEL_HOOK')]) {
                     sh '''
                         set -euo pipefail
                         for i in 1 2 3; do
@@ -157,7 +157,7 @@ pipeline {
             when { branch 'main' }
             steps {
                 echo 'Triggering Render deploy hook...'
-                withCredentials([string(credentialsId: 'RENDER_DEPLOY_HOOK', variable: 'RENDER_HOOK')]) {
+                withCredentials([string(credentialsId: 'render-id', variable: 'RENDER_HOOK')]) {
                     sh '''
                         set -euo pipefail
                         for i in 1 2 3; do
