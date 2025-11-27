@@ -78,7 +78,7 @@ export async function getAllSchedulesHandler(req: Request, res: Response) {
     const user = (req as any).user;
 
     const filter: any = {};
-    if (date) filter.date = date;
+    if (date) filter.date = date as string;
 
     if (user?.accountType === "driver") {
       filter.driver_id = user.userId;
@@ -163,3 +163,4 @@ export async function deleteScheduleHandler(req: Request, res: Response) {
     });
   }
 }
+

@@ -1,9 +1,11 @@
 import axios from "axios";
 import { storage } from "@/help/sessionStorage";
-console.log("BASE URL:", process.env.NEXT_PUBLIC_EXPRESS_API_ON_RENDER_URL);
+console.log("BASE RENDER  URL:", process.env.NEXT_PUBLIC_EXPRESS_API_ON_RENDER_URL);
+console.log("BASE LOCAL URL:", process.env.NEXT_PUBLIC_BE_API_URL);
+
 
 const axiosClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_EXPRESS_API_ON_RENDER_URL!,
+  baseURL: process.env.NEXT_PUBLIC_BE_API_URL!,
   headers: {
     "Content-Type": "application/json",
   },
