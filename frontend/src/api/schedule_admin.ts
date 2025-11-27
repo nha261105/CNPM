@@ -25,6 +25,31 @@ export interface UpdateSchedulePayload {
   new_data: Partial<CreateSchedulePayload>;
 }
 
+export interface AdminScheduleWithStudents {
+  schedule_id: number;
+  schedule_key: string;
+  driver_id: number;
+  driver_name: string;
+  bus_id: number;
+  bus_number: string;
+  route_id: number;
+  route_name: string;
+  schedule_date: string;
+  time: string;
+  status: "scheduled" | "in_progress" | "completed";
+  students: Array<{
+    student_id: number;
+    parent_id: number;
+    student_name: string;
+    pickup_point: {
+      pickup_point_id: number;
+      latitude: string;
+      longitude: string;
+      description: string;
+    };
+  }>;
+}
+
 export const scheduleService = {
   getSchedules: async (filter?: {
     date?: string;
@@ -90,5 +115,13 @@ export const scheduleService = {
       `api/schedule/admin?${params.toString()}`
     );
     return res.data;
+  },
+
+  /**
+   *  Lấy schedules hôm nay kèm students (cho realtime map)
+   */
+  getTodaySchedulesWithStudents: async (): Promise<AdminScheduleWithStudents[]> => {
+    const res = await axiosClient.get("/api/admin/realtime/schedules");
+    return res.data.data;
   },
 };

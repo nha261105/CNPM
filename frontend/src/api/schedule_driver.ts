@@ -26,8 +26,9 @@ export const driverScheduleService = {
     return res.data.data;
   },
 
-  getTodaySchedule: async (driverId: number) => {
-    const today = new Date().toISOString().split("T")[0];
-    return driverScheduleService.getMySchedules(driverId, today);
+ getTodaySchedule: async (driverId: number) => {
+    const now = new Date();
+    const localISODate = new Date().toLocaleDateString("en-CA");
+    return driverScheduleService.getMySchedules(driverId, localISODate);
   },
 };
