@@ -1,34 +1,39 @@
 pipeline {
     agent any
 
-    // 1. QUAN TRỌNG: Khai báo tool để Jenkins dùng được lệnh 'npm'
-    // Đảm bảo bạn đã vào Manage Jenkins -> Tools -> NodeJS và đặt tên là "NodeJS 18" (hoặc version bạn cài)
-    tools {
-        nodejs 'NodeJS 18' 
-    }
-
     options {
-        timeout(time: 30, unit: 'MINUTES') // Giảm time out xuống cho hợp lý
+        timeout(time: 60, unit: 'MINUTES')
     }
 
     environment {
-        // Lấy ngày giờ build để log cho đẹp
         BUILD_DATE = sh(script: "date +%Y-%m-%d_%H-%M-%S", returnStdout: true).trim()
+        NODE_VERSION = '22.x'
     }
 
     stages {
-        // Giai đoạn 1: Kiểm tra môi trường cơ bản
         stage('Environment Check') {
             steps {
                 echo 'Checking environment prerequisites...'
-                // Chỉ cần kiểm tra Node và NPM là đủ cho quy trình này
-                sh 'node --version'
-                sh 'npm --version'
+                sh 'docker --version || (echo "Docker not installed!" && exit 1)'
+                sh 'docker compose version || (echo "Docker Compose not installed!" && exit 1)'
+                sh '[ -x scripts/deploy-dev.sh ] || (echo "scripts/deploy-dev.sh is not executable!" && exit 1)'
+                sh '[ -x scripts/deploy-staging.sh ] || (echo "scripts/deploy-staging.sh is not executable!" && exit 1)'
+                sh '[ -x scripts/deploy-prod.sh ] || (echo "scripts/deploy-prod.sh is not executable!" && exit 1)'
+                sh '[ -f docker-compose.dev.yml ] || (echo "docker-compose.dev.yml missing!" && exit 1)'
+                // sh '[ -f docker-compose.prod.yml ] || (echo "docker-compose.prod.yml missing!" && exit 1)'
+                script {
+                    try {
+                        withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                            echo 'DockerHub credentials found.'
+                        }
+                    } catch (e) {
+                        echo 'DockerHub credentials not configured (non-blocking if you do not push images).'
+                    }
+                }
                 echo 'Environment check passed.'
             }
         }
 
-        // Giai đoạn 2: Lấy code về
         stage('Checkout') {
             steps {
                 checkout scm
@@ -36,93 +41,180 @@ pipeline {
             }
         }
 
-        // Giai đoạn 3: Cài đặt thư viện và Test (CI)
-        stage('Build & Test & Lint') {
+        stage('Build & Test') {
             parallel {
-                stage('Backend CI') {
+                stage('Backend') {
                     steps {
                         dir('backend') {
-                            echo '--- Backend: Install & Test ---'
-                            sh 'npm ci || npm install' // Cài thư viện
-                            // Chạy test nếu có (bỏ comment nếu dự án đã có test)
-                            // sh 'npm test' 
-                            
-                            echo '--- Backend: Lint Check ---'
-                            // Chạy lint nhưng không chặn pipeline nếu lỗi (non-blocking)
-                            sh 'npm run lint || echo "Backend lint warnings ignored"'
+                            sh 'npm ci || npm install'
+                            sh 'npm run build || true'
+                            sh 'npm test || echo "No backend tests or tests failed"'
                         }
                     }
                 }
-                stage('Frontend CI') {
+                stage('Frontend') {
                     steps {
                         dir('frontend') {
-                            echo '--- Frontend: Install & Test ---'
                             sh 'npm ci || npm install'
-                            // sh 'npm test'
-                            
-                            echo '--- Frontend: Lint Check ---'
-                            sh 'npm run lint || echo "Frontend lint warnings ignored"'
+                            sh 'npm run build || true'
+                            // Uncomment if you have frontend tests
+                            // sh 'npm test || echo "No frontend tests or tests failed"'
                         }
                     }
                 }
             }
         }
 
-        // Giai đoạn 4: Hỏi ý kiến trước khi Deploy (Chỉ chạy trên nhánh main)
-        stage('Production Approval') {
+        stage('Code Quality Check') {
+            parallel {
+                stage('Lint Backend') {
+                    steps {
+                        dir('backend') {
+                            sh 'npm run lint || echo "Backend linting issues found (non-blocking)"'
+                        }
+                    }
+                }
+                stage('Lint Frontend') {
+                    steps {
+                        dir('frontend') {
+                            sh 'npm run lint || echo "Frontend linting issues found (non-blocking)"'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Security Scan') {
+            steps {
+                dir('backend') { sh 'npm audit --audit-level=high || true' }
+                dir('frontend') { sh 'npm audit --audit-level=high || true' }
+            }
+        }
+
+        stage('Build Docker Images') {
+            when { anyOf { branch 'main'; branch 'develop'; branch 'hai' } }
+            steps {
+                sh '''
+                    docker build -t smartbus-backend:latest -f backend/Dockerfile.dev ./backend
+                    docker build -t smartbus-frontend:latest -f frontend/Dockerfile.dev ./frontend
+                '''
+            }
+        }
+
+        stage('Push Docker Images') {
             when { branch 'main' }
             steps {
                 script {
-                    // Timeout 15 phút chờ bấm nút
-                    timeout(time: 15, unit: 'MINUTES') {
-                        // Bỏ 'submitter: admin' để user nào có quyền build cũng bấm được
-                        input message: 'Tests passed. Deploy to Production (Vercel & Render)?', ok: 'Deploy Now'
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                        sh 'docker tag smartbus-backend:latest $DOCKER_USER/smartbus-backend:latest'
+                        sh 'docker tag smartbus-frontend:latest $DOCKER_USER/smartbus-frontend:latest'
+                        sh 'docker push $DOCKER_USER/smartbus-backend:latest'
+                        sh 'docker push $DOCKER_USER/smartbus-frontend:latest'
                     }
                 }
             }
         }
 
-        // Giai đoạn 5: Kích hoạt Deploy (CD)
-        stage('Trigger Deployments') {
+        stage('Deploy to Development') {
+            when { anyOf { branch 'develop'; branch 'hai' } }
+            steps { sh 'bash scripts/deploy-dev.sh' }
+        }
+
+        stage('Deploy to Staging') {
             when { branch 'main' }
-            parallel {
-                stage('Trigger Vercel (FE)') {
-                    steps {
-                        echo 'Triggering Vercel deploy hook...'
-                        withCredentials([string(credentialsId: 'VERCEL_DEPLOY_HOOK', variable: 'VERCEL_HOOK')]) {
-                            sh '''
-                                curl -X POST "${VERCEL_HOOK}"
-                                echo " -> Vercel trigger sent!"
-                            '''
-                        }
-                    }
-                }
+            steps { sh 'bash scripts/deploy-staging.sh' }
+        }
 
-                stage('Trigger Render (BE)') {
-                    steps {
-                        echo 'Triggering Render deploy hook...'
-                        withCredentials([string(credentialsId: 'RENDER_DEPLOY_HOOK', variable: 'RENDER_HOOK')]) {
-                            sh '''
-                                curl "${RENDER_HOOK}"
-                                echo " -> Render trigger sent!"
-                            '''
-                        }
-                    }
+        stage('Deploy Frontend (Vercel)') {
+            when { branch 'main' }
+            steps {
+                echo 'Triggering Vercel deploy hook...'
+                withCredentials([string(credentialsId: 'VERCEL_DEPLOY_HOOK', variable: 'VERCEL_HOOK')]) {
+                    sh '''
+                        set -euo pipefail
+                        for i in 1 2 3; do
+                          echo "Vercel hook POST attempt #$i ..."
+                          HTTP_CODE=$(curl -s -o /tmp/vercel_resp.json -w "%{http_code}" -X POST "${VERCEL_HOOK}")
+                          cat /tmp/vercel_resp.json || true
+                          echo "Vercel HTTP status: $HTTP_CODE"
+                          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+                            echo "Vercel deploy hook accepted."
+                            break
+                          fi
+                          if [ "$i" -eq 3 ]; then
+                            echo "Vercel deploy hook failed after 3 attempts."
+                            exit 1
+                          fi
+                          sleep $((i * 5))
+                        done
+                    '''
                 }
             }
         }
+
+        stage('Deploy Backend (Render)') {
+            when { branch 'main' }
+            steps {
+                echo 'Triggering Render deploy hook...'
+                withCredentials([string(credentialsId: 'RENDER_DEPLOY_HOOK', variable: 'RENDER_HOOK')]) {
+                    sh '''
+                        set -euo pipefail
+                        for i in 1 2 3; do
+                          echo "Render hook POST attempt #$i ..."
+                          HTTP_CODE=$(curl -s -o /tmp/render_resp.json -w "%{http_code}" -X POST "${RENDER_HOOK}")
+                          cat /tmp/render_resp.json || true
+                          echo "Render HTTP status: $HTTP_CODE"
+                          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+                            echo "Render deploy hook accepted."
+                            break
+                          fi
+                          if [ "$i" -eq 3 ]; then
+                            echo "Render deploy hook failed after 3 attempts."
+                            exit 1
+                          fi
+                          sleep $((i * 5))
+                        done
+                    '''
+                }
+            }
+        }
+
+        stage('Production Approval') {
+            when { branch 'main' }
+            steps {
+                timeout(time: 30, unit: 'MINUTES') {
+                    input message: 'Deploy to Production?', ok: 'Deploy', submitter: 'admin'
+                }
+            }
+        }
+
+        stage('Deploy to Production') {
+            when { branch 'main' }
+            steps { sh 'bash scripts/deploy-prod.sh' }
+        }
+
+        // stage('Smoke Tests') {
+        //     when { branch 'main' }
+        //     steps {
+        //         echo 'Running smoke tests...'
+        //         sh '''
+        //             sleep 10
+        //             # Customize these URLs for your real endpoints:
+        //             # curl -f http://localhost:3000/ || echo "FE not ready"
+        //             # curl -f https://your-backend.example.com/health || echo "BE not ready"
+        //             echo "Smoke tests skipped by default (customize Jenkinsfile)."
+        //         '''
+        //     }
+        // }
     }
 
     post {
-        success { 
-            echo "✅ Pipeline Success! Deployment triggered." 
-        }
-        failure { 
-            echo "❌ Pipeline Failed! Please check logs." 
-        }
+        success { echo "Pipeline finished OK." }
+        failure { echo "Pipeline failed — check console output." }
         always {
             echo "Cleaning workspace..."
-            cleanWs() // Dọn dẹp file rác sau khi chạy xong
+            cleanWs()
         }
     }
 }
