@@ -1,4 +1,3 @@
-import { success } from "zod";
 import supabase from "../../config/supabaseClient.js";
 
 export async function sendMessageFromAdminToDriver(
@@ -82,3 +81,5 @@ export async function getAllMessageWhileSend(id: number) {
     return { success: false, message: err.message };
   }
 }
+
+

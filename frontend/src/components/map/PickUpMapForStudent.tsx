@@ -8,6 +8,7 @@ import {
   useMapEvents,
 } from "react-leaflet";
 import { Dot, LocateFixed, MapPin } from "lucide-react";
+import L from "leaflet";
 
 interface PickupMapProps {
   currLatitude: number;
@@ -49,11 +50,23 @@ function MapController({
   );
 }
 
+delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: string })
+  ._getIconUrl;
+
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+});
+
 export default function PickupMapForStudent({
-  currLatitude,
-  currLongitude,
-  selectedLat,
-  selectedLng,
+  currLatitude = 0,
+  currLongitude = 0,
+  selectedLat = 0,
+  selectedLng = 0,
   setSelectedLat,
   setSelectedLng,
 }: PickupMapProps) {

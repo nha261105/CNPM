@@ -4,6 +4,7 @@ import {
   fetchCurrentPosition,
   fetchAllCurrentPositions,
   fetchAllStudentInRoute,
+  getTodaySchedulesForAdmin
 } from "./realtime.service.js";
 
 export async function createTracking(req: Request, res: Response) {
@@ -59,5 +60,19 @@ export async function getStudentInRouteHandler(req: Request, res: Response) {
   } catch (err) {
     console.error("getStudentInRouteHandler error:", err);
     return res.status(500).json({ ok: false, error: "Failed to fetch students" });
+  }
+}
+
+
+/**
+ *  GET /api/admin/realtime/schedules - Lấy schedules hôm nay kèm students
+ */
+export async function getTodaySchedulesHandler(req: Request, res: Response) {
+  try {
+    const schedules = await getTodaySchedulesForAdmin();
+    return res.json({ ok: true, data: schedules });
+  } catch (error: any) {
+    console.error(" Get today schedules error:", error);
+    return res.status(500).json({ ok: false, message: error.message });
   }
 }

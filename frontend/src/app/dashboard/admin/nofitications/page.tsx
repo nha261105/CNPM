@@ -46,7 +46,6 @@ export default function AdminNofitications() {
 
   useEffect(() => {
     const raw = storage.getUser();
-    console.log(raw)
     if (raw) {
       setUserAdmin(raw);
     }
