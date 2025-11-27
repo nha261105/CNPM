@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import { scheduleService, AdminScheduleWithStudents } from "@/api/schedule_admin";
