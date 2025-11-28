@@ -1,3 +1,13 @@
+# Tự động tạo frontend/.env.local nếu chưa có
+if [ ! -f frontend/.env.local ]; then
+  if [ -f frontend/.env.example ]; then
+    echo "[PROD] frontend/.env.local not found, copying from .env.example..."
+    cp frontend/.env.example frontend/.env.local
+  else
+    echo "[PROD] frontend/.env.example not found! Please add this file."
+    exit 1
+  fi
+fi
 #!/bin/bash
 set -e
 
