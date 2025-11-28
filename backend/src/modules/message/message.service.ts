@@ -60,4 +60,55 @@ export const MessageService = {
       return { success: false, message: error };
     }
   },
+  async sendMessageToParentByDriver(
+    driverId: number,
+    parentId: number,
+    studentName: string
+  ) {
+    try {
+      const mess = `Đã đón ${studentName} lên xe`;
+      const newData = {
+        sender_id: driverId,
+        receiver_id: 1,
+        message_content: mess,
+      };
+      const { data, error } = await supabase
+        .from("message")
+        .insert(newData)
+        .select();
+      if (error) {
+        return {
+          success: false,
+          message: error,
+        };
+      }
+      const admintoparrentData = {
+        sender_id: 1,
+        receiver_id: parentId,
+        message_content: mess,
+      };
+      const { data: admin, error: admin_error } = await supabase
+        .from("message")
+        .insert(admintoparrentData)
+        .select();
+      if (admin_error) {
+        return {
+          success: false,
+          message: admin_error,
+        };
+      }
+      return {
+        success: true,
+        data: {
+          driverToAdmin: data,
+          adminToParent: admintoparrentData,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error,
+      };
+    }
+  },
 };

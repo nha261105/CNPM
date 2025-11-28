@@ -6,6 +6,8 @@ import {
   getAllSchedulesHandler,
   deleteScheduleHandler,
   updateScheduleHandler,
+  driverStartScheduleHandler,
+  driverCompleteScheduleHandler,
 } from "./schedule.controller.js";
 import { authenticateToken } from "../../core/middlewares/auth.middleware.js";
 import { authorizeRoles } from "../../core/middlewares/auth.middleware.js";
@@ -97,5 +99,18 @@ router.get(
   getAllSchedulesHandler
 );
 
+router.post(
+  "/driver/:scheduleId/start",
+  authenticateToken,
+  authorizeRoles("driver"),
+  driverStartScheduleHandler
+);
+
+router.post(
+  "/driver/:scheduleId/complete",
+  authenticateToken,
+  authorizeRoles("driver"),
+  driverCompleteScheduleHandler
+);
 
 export default router;

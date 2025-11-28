@@ -7,6 +7,8 @@ import {
   getAllDrivers,
   getAllBuses,
   getAllRoutes,
+  unlockScheduleNavigation,
+  completeScheduleManually,
 } from "./schedule.service.js";
 import type { Request, Response } from "express";
 /**
@@ -164,3 +166,67 @@ export async function deleteScheduleHandler(req: Request, res: Response) {
   }
 }
 
+export async function driverStartScheduleHandler(req: Request, res: Response) {
+  try {
+    const user = (req as any).user;
+    const scheduleId =
+      Number(req.params.scheduleId) || Number(req.body?.schedule_id);
+
+    if (!scheduleId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Thiếu schedule_id" });
+    }
+    if (!user?.userId) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Không xác thực được tài xế" });
+    }
+
+    const updated = await unlockScheduleNavigation(scheduleId, user.userId);
+    return res.json({
+      success: true,
+      data: updated,
+      message: "Đã bắt đầu chuyến đi",
+    });
+  } catch (error: any) {
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Không thể bắt đầu chuyến đi",
+    });
+  }
+}
+
+export async function driverCompleteScheduleHandler(
+  req: Request,
+  res: Response
+) {
+  try {
+    const user = (req as any).user;
+    const scheduleId =
+      Number(req.params.scheduleId) || Number(req.body?.schedule_id);
+
+    if (!scheduleId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Thiếu schedule_id" });
+    }
+    if (!user?.userId) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Không xác thực được tài xế" });
+    }
+
+    const updated = await completeScheduleManually(scheduleId, user.userId);
+    return res.json({
+      success: true,
+      data: updated,
+      message: "Đã hoàn tất chuyến đi",
+    });
+  } catch (error: any) {
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Không thể hoàn tất chuyến đi",
+    });
+  }
+}

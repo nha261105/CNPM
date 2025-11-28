@@ -103,7 +103,7 @@ export default function ManagerDayRoutes() {
           {sortedSchedules.map((schedule) => (
             <div
               className="flex flex-col bg-white p-4 rounded-lg shadow border border-gray-200"
-              key={schedule.schedule_key}
+              key={`${schedule.schedule_id}-${schedule.schedule_key}`}
             >
               <div className="flex justify-between items-center mb-2">
                 <div className="flex flex-row gap-4">
