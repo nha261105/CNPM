@@ -2,13 +2,13 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install package co trong package.json
-COPY package*.json ./
 
+# Copy package.json trước để cache layer cài dependencies
+COPY package*.json ./
 RUN npm install
 
-#Copy may cai khac
-COPY  . .
+# Copy source code sau để tránh rebuild khi không thay đổi code
+COPY . .
 
 #Expose Nextjs dev port
 EXPOSE 3000
