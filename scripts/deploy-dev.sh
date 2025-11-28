@@ -1,9 +1,12 @@
 #!/bin/bash
 set -e
 
-echo "[DEV] Restarting development containers..."
-docker compose -f docker-compose.dev.yml down || true
-docker compose -f docker-compose.dev.yml up -d
+
+echo "[DEV] Restarting backend & frontend containers..."
+# Chỉ dừng và xóa backend, frontend, KHÔNG động vào jenkins_dev
+docker compose -f docker-compose.dev.yml stop backend frontend || true
+docker compose -f docker-compose.dev.yml rm -f backend frontend || true
+docker compose -f docker-compose.dev.yml up -d backend frontend
 
 echo "[DEV] Checking service status..."
 docker compose -f docker-compose.dev.yml ps
