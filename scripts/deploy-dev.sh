@@ -1,3 +1,9 @@
+
+# Tự động tạo backend/.env nếu chưa có
+if [ ! -f backend/.env ]; then
+	echo "[DEV] backend/.env not found, copying from .env.example..."
+	cp backend/.env.example backend/.env
+fi
 #!/bin/bash
 set -e
 
