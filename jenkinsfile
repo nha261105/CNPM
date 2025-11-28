@@ -1,9 +1,11 @@
 pipeline {
     agent any
 
+
         options {
             timeout(time: 60, unit: 'MINUTES')
         }
+
 
     environment {
         BUILD_DATE = sh(script: "date +%Y-%m-%d_%H-%M-%S", returnStdout: true).trim()
@@ -20,7 +22,9 @@ pipeline {
                 sh '[ -x scripts/deploy-staging.sh ] || (echo "scripts/deploy-staging.sh is not executable!" && exit 1)'
                 sh '[ -x scripts/deploy-prod.sh ] || (echo "scripts/deploy-prod.sh is not executable!" && exit 1)'
                 sh '[ -f docker-compose.dev.yml ] || (echo "docker-compose.dev.yml missing!" && exit 1)'
+
             // sh '[ -f docker-compose.prod.yml ] || (echo "docker-compose.prod.yml missing!" && exit 1)'
+
                 script {
                     try {
                         withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
