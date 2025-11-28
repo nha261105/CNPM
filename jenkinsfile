@@ -1,9 +1,11 @@
 pipeline {
     agent any
 
-    options {
-        timeout(time: 60, unit: 'MINUTES')
-    }
+
+        options {
+            timeout(time: 60, unit: 'MINUTES')
+        }
+
 
     environment {
         BUILD_DATE = sh(script: "date +%Y-%m-%d_%H-%M-%S", returnStdout: true).trim()
@@ -20,7 +22,9 @@ pipeline {
                 sh '[ -x scripts/deploy-staging.sh ] || (echo "scripts/deploy-staging.sh is not executable!" && exit 1)'
                 sh '[ -x scripts/deploy-prod.sh ] || (echo "scripts/deploy-prod.sh is not executable!" && exit 1)'
                 sh '[ -f docker-compose.dev.yml ] || (echo "docker-compose.dev.yml missing!" && exit 1)'
-                // sh '[ -f docker-compose.prod.yml ] || (echo "docker-compose.prod.yml missing!" && exit 1)'
+
+            // sh '[ -f docker-compose.prod.yml ] || (echo "docker-compose.prod.yml missing!" && exit 1)'
+
                 script {
                     try {
                         withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
@@ -127,57 +131,53 @@ pipeline {
         }
 
         stage('Deploy Frontend (Vercel)') {
-            when { branch 'main' }
-            steps {
-                echo 'Triggering Vercel deploy hook...'
-                withCredentials([string(credentialsId: 'vercel-id', variable: 'VERCEL_HOOK')]) {
-                    sh '''
-                        set -euo pipefail
-                        for i in 1 2 3; do
-                          echo "Vercel hook POST attempt #$i ..."
-                          HTTP_CODE=$(curl -s -o /tmp/vercel_resp.json -w "%{http_code}" -X POST "${VERCEL_HOOK}")
-                          cat /tmp/vercel_resp.json || true
-                          echo "Vercel HTTP status: $HTTP_CODE"
-                          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-                            echo "Vercel deploy hook accepted."
-                            break
-                          fi
-                          if [ "$i" -eq 3 ]; then
-                            echo "Vercel deploy hook failed after 3 attempts."
-                            exit 1
-                          fi
-                          sleep $((i * 5))
-                        done
-                    '''
-                }
-            }
+                    when { anyOf { branch 'main'; branch 'hai' } }
+                    steps {
+                        echo 'Triggering Vercel deploy hook...'
+                        sh '''
+                            set -euo pipefail
+                            for i in 1 2 3; do
+                                echo "Vercel hook POST attempt #$i ..."
+                                HTTP_CODE=$(curl -s -o /tmp/vercel_resp.json -w "%{http_code}" -X POST "https://api.vercel.com/v1/integrations/deploy/prj_clKk0bSXKxWNDvdaiCTiTstGTVPS/YCJaNRda40")
+                                cat /tmp/vercel_resp.json || true
+                                echo "Vercel HTTP status: $HTTP_CODE"
+                                if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+                                    echo "Vercel deploy hook accepted."
+                                    break
+                                fi
+                                if [ "$i" -eq 3 ]; then
+                                    echo "Vercel deploy hook failed after 3 attempts."
+                                    exit 1
+                                fi
+                                sleep $((i * 5))
+                            done
+                        '''
+                    }
         }
 
         stage('Deploy Backend (Render)') {
-            when { branch 'main' }
-            steps {
-                echo 'Triggering Render deploy hook...'
-                withCredentials([string(credentialsId: 'render-id', variable: 'RENDER_HOOK')]) {
-                    sh '''
-                        set -euo pipefail
-                        for i in 1 2 3; do
-                          echo "Render hook POST attempt #$i ..."
-                          HTTP_CODE=$(curl -s -o /tmp/render_resp.json -w "%{http_code}" -X POST "${RENDER_HOOK}")
-                          cat /tmp/render_resp.json || true
-                          echo "Render HTTP status: $HTTP_CODE"
-                          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-                            echo "Render deploy hook accepted."
-                            break
-                          fi
-                          if [ "$i" -eq 3 ]; then
-                            echo "Render deploy hook failed after 3 attempts."
-                            exit 1
-                          fi
-                          sleep $((i * 5))
-                        done
-                    '''
-                }
-            }
+                    when { anyOf { branch 'main'; branch 'hai' } }
+                    steps {
+                        echo 'Triggering Render deploy hook...'
+                        sh '''
+                            set -euo pipefail
+                            for i in 1 2 3; do
+                                echo "Render hook POST attempt #$i ..."
+                                HTTP_CODE=$(curl -s -o /tmp/render_resp.json -w "%{http_code}" -X POST "https://api.render.com/deploy/srv-d4hjsb0dl3ps739r80jg?key=n5Ktij-19n8")
+                                cat /tmp/render_resp.json || true
+                                echo "Render HTTP status: $HTTP_CODE"
+                                if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+                                    echo "Render deploy hook accepted."
+                                    break
+                                fi
+                                if [ "$i" -eq 3 ]; then
+                                    echo "Render deploy hook failed after 3 attempts."
+                                    exit 1
+                                fi
+                                sleep $((i * 5))
+                            done
+                        '''
+                    }
         }
 
         stage('Production Approval') {
