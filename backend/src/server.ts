@@ -19,10 +19,9 @@ import busRoutes from "./modules/bus/bus.routes.js";
 import routeRoutes from "./modules/routes/route.routes.js";
 import pickupPointRoutes from "./modules/pickup_point/pickup_point.routes.js";
 import attendanceLogRoutes from "./modules/attendance_log/attendance_log.route.js";
+import reportsRouter from "./modules/reports/reports.routes.js"
 
 dotenv.config();
-
-startMQTT();
 
 const server = express();
 const port: number | string = process.env.PORT || 5000;
@@ -71,15 +70,16 @@ server.use("/api/admin/nofitications", nofiticationRoute);
 server.use("/api/schedule", scheduleRoutes);
 server.use("/api/users", userRoutes);
 server.use("/api/bus", busRoutes);
-server.use("/api/routes", routeRoutes); 
-server.use("/api/pickup_point", pickupPointRoutes);
+server.use("/api/routes", routeRoutes);
 server.use("/api/attendance-log", attendanceLogRoutes);
 // ------------------- DRIVER ROUTE --------------------------
-server.use("/api", StudentsRoute);
-server.use("/api", tripHistoryRoutes);
+server.use("/api/driver/reports", reportsRouter)
 
 // ------------------- PARENT ROUTE --------------------------
+server.use("/api", StudentsRoute);
 server.use("/api", MessageRoute);
+server.use("/api", tripHistoryRoutes);
+server.use("/api/pickup_point", pickupPointRoutes);
 
 async function testConnect() {
   const { data, error } = await supabase.from("type_account").select("*");
@@ -95,4 +95,5 @@ async function testConnect() {
 server.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
   testConnect();
+  startMQTT();
 });
