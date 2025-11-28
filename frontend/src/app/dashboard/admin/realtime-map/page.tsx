@@ -176,7 +176,7 @@ export default function RealTimeMap() {
               <div className="space-y-3">
                 {schedules.map((schedule) => (
                   <div
-                    key={schedule.schedule_key}
+                    key={`${schedule.schedule_id}-${schedule.schedule_key}`}
                     className="flex justify-between items-center border p-5 rounded-lg hover:bg-gray-50 transition"
                   >
                     <div className="flex gap-4">

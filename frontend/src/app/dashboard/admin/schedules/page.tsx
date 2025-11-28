@@ -209,7 +209,7 @@ export default function ManagerSchedule() {
 
                   <TableBody>
                     {schedules.map((schedule) => (
-                      <TableRow key={schedule.schedule_key}>
+                      <TableRow key={`${schedule.schedule_id}-${schedule.schedule_key}`}>
                         <TableCell>{schedule.schedule_date}</TableCell>
                         <TableCell>{schedule.route_id}</TableCell>
                         <TableCell>{schedule.driver_id}</TableCell>

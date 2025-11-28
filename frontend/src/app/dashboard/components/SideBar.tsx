@@ -106,11 +106,11 @@ export const SideBar = ({ role }: { role: Role }) => {
             path: `/dashboard/driver/reports`,
             icon: <Send />,
           },
-          {
-            name: "Kiểm tra học sinh",
-            path: `/dashboard/driver/studentchecklist`,
-            icon: <ClipboardCheck />,
-          },
+          // {
+          //   name: "Kiểm tra học sinh",
+          //   path: `/dashboard/driver/studentchecklist`,
+          //   icon: <ClipboardCheck />,
+          // },
           {
             name: "Kiểm tra xe",
             path: `/dashboard/driver/checkvehicle`,

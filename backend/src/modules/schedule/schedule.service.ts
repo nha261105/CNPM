@@ -134,32 +134,42 @@ function formatTime(timestamp: string): string {
   }
 }
 
-async function calculateStatus(
+async function hasTrackingInLast(
   busId: number,
-  scheduleDate: string,
-  startTime: string
-): Promise<"scheduled" | "in_progress" | "completed"> {
+  minute: number
+): Promise<boolean> {
   const now = new Date();
-  const three = new Date(now);
-  three.setMinutes(three.getMinutes() - 3);
-  const { data } = await supabase
+  const limit = new Date(now);
+  limit.setMinutes(limit.getSeconds() - minute);
+  const { data, error } = await supabase
     .from("tracking_realtime")
     .select("timestamp")
     .eq("bus_id", busId)
-    .gte("timestamp", three.toISOString())
+    .gte("timestamp", limit.toISOString())
     .limit(1)
     .maybeSingle();
-  if (data) {
-    return "in_progress";
+  if (error) {
+    throw new Error("Loi kiem tra tracking realtime" + error);
   }
-  const scheduleDateTime = new Date(`${scheduleDate}T${startTime}`);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  //todo: sửa sau, xử lí nằm trong khoảng [start , end] = progress
-  if (scheduleDateTime < now) {
+  return !!data;
+}
+
+async function calculateStatus(
+  busId: number,
+  scheduleDate: string,
+  startTime: string,
+  duration: number
+): Promise<"scheduled" | "in_progress" | "completed"> {
+  const scheduleStart = new Date(`${scheduleDate}T${startTime}+07:00`);
+  const scheduleEnd = new Date(scheduleStart.getTime() + duration * 60000);
+  const now = new Date();
+  const hasRecentTracking = await hasTrackingInLast(busId, 0);
+  if (now < scheduleStart) {
+    return "scheduled";
+  } else if (now >= scheduleEnd) {
     return "completed";
   }
-  return "scheduled";
+  return hasRecentTracking ? "in_progress" : "scheduled";
 }
 // lấy thông tin tất cả lịch trình
 export async function getAllSchedule(filter?: {
@@ -171,13 +181,14 @@ export async function getAllSchedule(filter?: {
   let q = supabase
     .from("schedule")
     .select(
-      `schedule_id, driver_id, bus_id, route_id, schedule_date, start_time, is_deleted, bus (
+      `schedule_id, driver_id, bus_id, route_id, schedule_date, start_time, is_deleted, navigation_unlocked_at, manual_completed_at, bus (
         bus_id,
         license_plate_number
       ),
       routes (
         route_id,
-        route_name
+        route_name,
+        duration
       )`
     )
     .eq("is_deleted", false)
@@ -203,27 +214,209 @@ export async function getAllSchedule(filter?: {
 
   const scheduleWithStatus = await Promise.all(
     (data || []).map(async (schedule: any) => {
-      const status = await calculateStatus(
-        schedule.bus_id,
-        schedule.schedule_date,
-        schedule.start_time
-      );
-      const result = {
-        schedule_id: schedule.schedule_id,
-        schedule_key: `${schedule.driver_id}-${schedule.bus_id}-${schedule.route_id}-${schedule.schedule_date}`,
-        driver_id: schedule.driver_id,
-        bus_id: schedule.bus_id,
-        bus_number: schedule.bus?.license_plate_number,
-        route_id: schedule.route_id,
-        schedule_date: schedule.schedule_date,
-        time: formatTime(schedule.start_time),
-        status: status,
-        is_active: status === "in_progress",
-      };
-      return result;
+      try {
+        const duration = schedule.routes?.duration ?? 5;
+        const scheduleStart = new Date(
+          `${schedule.schedule_date}T${schedule.start_time}+07:00`
+        );
+        const now = new Date();
+        const hasManualStart = !!schedule.navigation_unlocked_at;
+        const hasManualCompleted = !!schedule.manual_completed_at;
+
+        // Chỉ tính status từ calculateStatus nếu chưa có manual start
+        // Nếu đã có manual start, status sẽ được set thành in_progress
+        let calculatedStatus: "scheduled" | "in_progress" | "completed";
+        try {
+          calculatedStatus = await calculateStatus(
+            schedule.bus_id,
+            schedule.schedule_date,
+            schedule.start_time,
+            duration
+          );
+        } catch (error: any) {
+          console.error(
+            `Error calculating status for schedule ${schedule.schedule_id}:`,
+            error
+          );
+          calculatedStatus = "scheduled";
+        }
+
+        // QUAN TRỌNG: Status chỉ là in_progress khi:
+        // 1. Có manual start (driver đã bấm Start) → luôn in_progress, HOẶC
+        // 2. Có tracking thực sự VÀ đã qua start_time VÀ không có manual start
+        // Nếu chưa có manual start và now >= start_time nhưng không có tracking, vẫn giữ scheduled để cho phép navigation
+        const finalStatus = hasManualCompleted
+          ? "completed"
+          : calculatedStatus === "completed"
+          ? "completed"
+          : hasManualStart
+          ? "in_progress" // Driver đã bấm Start → luôn in_progress
+          : now >= scheduleStart &&
+            calculatedStatus === "in_progress" &&
+            !hasManualStart
+          ? "in_progress" // Có tracking thực sự nhưng chưa có manual start → in_progress
+          : "scheduled"; // Chưa start hoặc chưa có tracking → scheduled (cho phép navigation)
+
+        // Cho phép navigation khi:
+        // 1. Đã có manual start (driver đã bấm Start), HOẶC
+        // 2. Đã đến giờ khởi hành (now >= scheduleStart) và chưa completed
+        const canNavigate =
+          finalStatus === "completed"
+            ? false
+            : hasManualStart || now >= scheduleStart;
+
+        console.log(
+          `[Schedule ${
+            schedule.schedule_id
+          }] calculatedStatus: ${calculatedStatus}, finalStatus: ${finalStatus}, hasManualStart: ${hasManualStart}, scheduleStart: ${scheduleStart.toISOString()}, now: ${now.toISOString()}, canNavigate: ${canNavigate}`
+        );
+
+        const result = {
+          schedule_id: schedule.schedule_id,
+          schedule_key: `${schedule.driver_id}-${schedule.bus_id}-${schedule.route_id}-${schedule.schedule_date}`,
+          driver_id: schedule.driver_id,
+          bus_id: schedule.bus_id,
+          bus_number: schedule.bus?.license_plate_number,
+          route_id: schedule.route_id,
+          route_name: schedule.routes?.route_name,
+          schedule_date: schedule.schedule_date,
+          time: formatTime(schedule.start_time),
+          duration: duration,
+          status: finalStatus,
+          is_active: finalStatus === "in_progress",
+          is_navigation_allowed: canNavigate,
+          is_visible: finalStatus !== "completed",
+          navigation_unlocked_at: schedule.navigation_unlocked_at,
+          manual_completed_at: schedule.manual_completed_at,
+        };
+        return result;
+      } catch (error: any) {
+        console.error(
+          `Error processing schedule ${schedule.schedule_id}:`,
+          error
+        );
+        return {
+          schedule_id: schedule.schedule_id,
+          schedule_key: `${schedule.driver_id}-${schedule.bus_id}-${schedule.route_id}-${schedule.schedule_date}`,
+          driver_id: schedule.driver_id,
+          bus_id: schedule.bus_id,
+          bus_number: schedule.bus?.license_plate_number || "",
+          route_id: schedule.route_id,
+          route_name: schedule.routes?.route_name,
+          schedule_date: schedule.schedule_date,
+          time: formatTime(schedule.start_time),
+          duration: schedule.routes?.duration ?? 5,
+          status: "scheduled" as const,
+          is_active: false,
+          is_navigation_allowed: false,
+          is_visible: true,
+          navigation_unlocked_at: schedule.navigation_unlocked_at,
+          manual_completed_at: schedule.manual_completed_at,
+        };
+      }
     })
   );
   return scheduleWithStatus;
+}
+
+export async function unlockScheduleNavigation(
+  scheduleId: number,
+  driverId: number
+) {
+  if (!scheduleId || !driverId) {
+    throw new Error("Thiếu thông tin schedule hoặc driver");
+  }
+
+  const { data: schedule, error } = await supabase
+    .from("schedule")
+    .select(
+      "schedule_id, driver_id, navigation_unlocked_at, schedule_date, start_time"
+    )
+    .eq("schedule_id", scheduleId)
+    .eq("driver_id", driverId)
+    .eq("is_deleted", false)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error("Lỗi tìm lịch trình: " + error.message);
+  }
+  if (!schedule) {
+    throw new Error("Không tìm thấy lịch trình cần cập nhật");
+  }
+  if (schedule.navigation_unlocked_at) {
+    return schedule;
+  }
+
+  const { data: updated, error: updateError } = await supabase
+    .from("schedule")
+    .update({
+      navigation_unlocked_at: new Date().toISOString(),
+    })
+    .eq("schedule_id", scheduleId)
+    .eq("driver_id", driverId)
+    .eq("is_deleted", false)
+    .select(
+      "schedule_id, driver_id, navigation_unlocked_at, schedule_date, start_time"
+    )
+    .maybeSingle();
+
+  if (updateError) {
+    throw new Error("Lỗi cập nhật navigation: " + updateError.message);
+  }
+  if (!updated) {
+    throw new Error("Không thể cập nhật navigation cho lịch trình");
+  }
+  return updated;
+}
+
+export async function completeScheduleManually(
+  scheduleId: number,
+  driverId: number
+) {
+  if (!scheduleId || !driverId) {
+    throw new Error("Thiếu thông tin schedule hoặc driver");
+  }
+  const { data: schedule, error } = await supabase
+    .from("schedule")
+    .select(
+      "schedule_id, driver_id, navigation_unlocked_at, manual_completed_at"
+    )
+    .eq("schedule_id", scheduleId)
+    .eq("driver_id", driverId)
+    .eq("is_deleted", false)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error("Lỗi tìm lịch trình: " + error.message);
+  }
+  if (!schedule) {
+    throw new Error("Không tìm thấy lịch trình cần cập nhật");
+  }
+
+  if (schedule.manual_completed_at) {
+    return schedule;
+  }
+
+  const { data: updated, error: updateError } = await supabase
+    .from("schedule")
+    .update({
+      manual_completed_at: new Date().toISOString(),
+    })
+    .eq("schedule_id", scheduleId)
+    .eq("driver_id", driverId)
+    .eq("is_deleted", false)
+    .select(
+      "schedule_id, driver_id, navigation_unlocked_at, manual_completed_at"
+    )
+    .maybeSingle();
+
+  if (updateError) {
+    throw new Error("Lỗi cập nhật hoàn tất lịch trình: " + updateError.message);
+  }
+  if (!updated) {
+    throw new Error("Không thể cập nhật hoàn tất lịch trình");
+  }
+  return updated;
 }
 
 // Xóa schedule
@@ -355,5 +548,3 @@ export async function updateSchedule(
 
   return updatedSchedule;
 }
-
-
