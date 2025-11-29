@@ -11,7 +11,7 @@ fi
 #!/bin/bash
 set -e
 
-DOCKER_USER=${DOCKER_USER:-your-dockerhub-username}
+DOCKER_USER=${DOCKER_USER:-thanhhai151200}
 
 # Use the correct compose file for production
 docker_compose_file="docker-compose.prod.yml"

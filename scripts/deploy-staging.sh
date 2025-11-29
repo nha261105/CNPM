@@ -10,7 +10,7 @@ fi
 #!/bin/bash
 set -e
 
-DOCKER_USER=${DOCKER_USER:-your-dockerhub-username}
+DOCKER_USER=${DOCKER_USER:-thanhhai151200}
 
 echo "[STAGING] Pulling latest images..."
 docker pull $DOCKER_USER/smartbus-backend:latest
