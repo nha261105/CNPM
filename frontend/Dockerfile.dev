@@ -1,31 +1,27 @@
 FROM node:20-alpine
 
-# Install dependencies needed for Sharp
-RUN apk add --no-cache \
-    libc6-compat \
-    vips-dev
+# Install system dependencies
+RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-# Copy package.json trước để cache layer cài dependencies
+# Copy package files
 COPY package*.json ./
-RUN npm install
 
-# Ensure Sharp is properly installed for the platform
-RUN npm install --include=optional sharp
+# Install dependencies
+RUN npm ci
 
-# Copy source code sau để tránh rebuild khi không thay đổi code
+# Copy source code
 COPY . .
 
-# Set proper permissions before switching user  
-RUN chown -R node:node /app && \
-    # Pre-compile Next.js for faster startup
-    npm run build || true
+# Build the application
+RUN npm run build
+
+# Change ownership
+RUN chown -R node:node /app
 
 USER node
 
-#Expose Nextjs dev port
 EXPOSE 3000
 
-#Run in dev mode (Turbopack enabled (Nextjs))
-CMD [ "npm", "run", "dev" ]
+CMD ["npm", "run", "start"]
