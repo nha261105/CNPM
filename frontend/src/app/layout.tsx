@@ -8,13 +8,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="mdl-js">
-      <body>
-        <AuthProvider>
-          {children}
-          <Toaster />
-        </AuthProvider>
-      </body>
-    </html>
+    <>
+      <AuthProvider>
+        {children}
+        <Toaster />
+      </AuthProvider>
+    </>
   );
 }
