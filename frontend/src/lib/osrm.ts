@@ -1,25 +1,27 @@
-// gọi OSRM trực tiếp (router.project-osrm.org)
+import axiosClient from "./axiosClient";
+
+/**
+ * Gọi OSRM qua backend proxy (tránh CORS)
+ */
 export async function getRouteFromOSRM(coords: [number, number][]) {
-  const coordStr = coords.map(([lat, lng]) => `${lng},${lat}`).join(";");
-  
-  // gọi public OSRM endpoint trực tiếp
-  const url = `https://router.project-osrm.org/route/v1/driving/${coordStr}?overview=full&geometries=geojson`;
-  
   try {
-    const r = await fetch(url);
-    if (!r.ok) {
-      console.error("OSRM fetch failed:", r.status, await r.text());
-      return null;
-    }
-    const data = await r.json();
-    const route = data.routes?.[0];
-    
-    if (!route) return null;
-    
-    // convert [lng,lat] -> [lat,lng]
-    return route.geometry.coordinates.map((c: number[]) => [c[1], c[0]] as [number, number]);
-  } catch (err) {
-    console.error("getRouteFromOSRM error:", err);
+    // Convert [[lat,lng], [lat,lng]] → "lat,lng;lat,lng"
+    const coordStr = coords.map(([lat, lng]) => `${lat},${lng}`).join(";");
+
+    console.log("  Fetching route via backend proxy...");
+
+    // Gọi backend thay vì trực tiếp OSRM
+    const response = await axiosClient.get("/api/osrm/route", {
+      params: { coords: coordStr },
+    });
+
+    const { coordinates } = response.data;
+
+    console.log("Route fetched:", coordinates.length, "points");
+
+    return coordinates as [number, number][];
+  } catch (err: any) {
+    console.error(" getRouteFromOSRM error:", err.response?.data || err.message);
     return null;
   }
 }

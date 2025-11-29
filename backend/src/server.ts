@@ -20,6 +20,9 @@ import routeRoutes from "./modules/routes/route.routes.js";
 import pickupPointRoutes from "./modules/pickup_point/pickup_point.routes.js";
 import attendanceLogRoutes from "./modules/attendance_log/attendance_log.route.js";
 import reportsRouter from "./modules/reports/reports.routes.js"
+import osrmRoutes from "./modules/osrm/osrm.route.js";
+
+
 
 dotenv.config();
 
@@ -62,6 +65,7 @@ server.get("/api/health", (req, res) => {
   res.json({ status: "OK", message: "Server is running" });
 });
 server.use("/api/tracking", trackingRoutes);
+server.use("/api/osrm", osrmRoutes);
 
 // ------------------- ADMIN ROUTE --------------------------
 server.use("/api/admin/overview", overviewRoutes);

@@ -52,6 +52,7 @@ interface DriverMapProps {
   busId: number;
   isNavigating?: boolean;
   onCheckpointComplete?: (checkpointId: number, parentId?: number) => void;
+  adminMode?: boolean;
 }
 
 export default function DriverMap({
@@ -59,6 +60,7 @@ export default function DriverMap({
   busId,
   isNavigating = false,
   onCheckpointComplete,
+  adminMode = false,
 }: DriverMapProps) {
   const [route, setRoute] = useState<[number, number][]>([]);
   const [completedCheckpoints, setCompletedCheckpoints] = useState<Set<number>>(
@@ -429,7 +431,7 @@ export default function DriverMap({
 
   useEffect(() => {
     const currentPos =
-      isNavigating && simPos
+      isNavigating && simPos && !adminMode
         ? simPos
         : realtimePos
         ? { lat: realtimePos.latitude, lng: realtimePos.longitude }
@@ -524,7 +526,7 @@ export default function DriverMap({
           }
         }
 
-        if (dist <= 200) {
+        if (dist <= 200 && !adminMode) {
           if (!completedCheckpoints.has(checkpoint.id)) {
             if (checkpoint.id === maxId) {
               console.log(
@@ -561,7 +563,7 @@ export default function DriverMap({
     };
 
     checkDistance();
-    const interval = setInterval(checkDistance, 10);
+    const interval = setInterval(checkDistance, 1000);
     return () => clearInterval(interval);
   }, [
     isNavigating,
@@ -572,6 +574,7 @@ export default function DriverMap({
     completedCheckpoints,
     onCheckpointComplete,
     maxId,
+    adminMode,
   ]);
 
   useEffect(() => {
@@ -584,6 +587,8 @@ export default function DriverMap({
   // const sendNotificationToParent = async();
 
   const busCurrentPos =
+    adminMode ? realtimePos ? 
+    {lat: realtimePos.latitude, lng: realtimePos.longitude} : {lat: SCHOOL[0], lng: SCHOOL[1]} :
     isNavigating && simPos
       ? simPos
       : realtimePos

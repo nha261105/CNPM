@@ -35,7 +35,8 @@ export default function RealTimeMap() {
   const { data: schedules = [], isLoading } = useQuery({
     queryKey: ["today-schedules"],
     queryFn: () => scheduleService.getTodaySchedulesWithStudents(),
-    refetchInterval: 10000,
+    refetchInterval: 5000,
+    staleTime: 0,
   });
 
   //  Build checkpoints khi chọn schedule (giống logic driver)
@@ -115,6 +116,15 @@ export default function RealTimeMap() {
     setCheckpoints([startPoint, ...sortedStudentCheckpoints, endPoint]);
   }, [selectedSchedule]);
 
+  // useEffect(() => {
+  //   if(schedules.length > 0 && !selectedSchedule) {
+  //     const activeSchedule = schedules.find((s) => s.status === "in_progress")
+  //     if(activeSchedule) {
+  //       setSelectedSchedule(activeSchedule)
+  //     }
+  //   }
+  // }, [schedules,selectedSchedule])
+
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -158,7 +168,8 @@ export default function RealTimeMap() {
               <DriverMap
                 checkpoints={checkpoints}
                 busId={selectedSchedule.bus_id}
-                isNavigating={selectedSchedule.status === "in_progress"}
+                isNavigating={selectedSchedule.status === "in_progress" }
+                adminMode={selectedSchedule.status === "in_progress" ? true : false}
               />
             </CardContent>
           </Card>
