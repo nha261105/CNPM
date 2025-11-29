@@ -17,8 +17,11 @@ RUN npm install --include=optional sharp
 # Copy source code sau để tránh rebuild khi không thay đổi code
 COPY . .
 
-# Set proper permissions before switching user
-RUN chown -R node:node /app
+# Set proper permissions before switching user  
+RUN chown -R node:node /app && \
+    # Pre-compile Next.js for faster startup
+    npm run build || true
+
 USER node
 
 #Expose Nextjs dev port

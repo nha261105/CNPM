@@ -1,68 +1,151 @@
 
 #!/bin/bash
-# Tự động tạo backend/.env nếu chưa có
-if [ ! -f backend/.env ]; then
-	echo "[DEV] backend/.env not found, copying from .env.example..."
-	cp backend/.env.example backend/.env
-fi
+set -euo pipefail
 
-# Tự động tạo frontend/.env.local nếu chưa có
-if [ ! -f frontend/.env.local ]; then
-	if [ -f frontend/.env.example ]; then
-		echo "[DEV] frontend/.env.local not found, copying from .env.example..."
-		cp frontend/.env.example frontend/.env.local
-	else
-		echo "[DEV] frontend/.env.example not found! Please add this file."
-		exit 1
-	fi
-fi
-#!/bin/bash
-set -e
+# Colors for better output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
 
-echo "[DEV] Stopping backend & frontend containers (keeping Jenkins running)..."
-# Stop only backend and frontend containers, NOT Jenkins
-docker compose -f docker-compose.dev.yml stop backend frontend || true
-docker compose -f docker-compose.dev.yml rm -f backend frontend || true
+log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
+log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
+log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
-echo "[DEV] Starting backend & frontend containers..."
-# Start only backend and frontend, don't recreate Jenkins
-docker compose -f docker-compose.dev.yml up -d backend frontend
-
-echo "[DEV] Waiting for containers to be ready..."
-sleep 10
-
-echo "[DEV] Checking service status..."
-docker compose -f docker-compose.dev.yml ps backend frontend
-
-echo "[DEV] Running comprehensive health checks..."
-if [ -f "scripts/health-check.sh" ]; then
-    bash scripts/health-check.sh
-else
-    echo "[DEV] health-check.sh not found, using simple checks..."
+# Enhanced environment setup
+setup_environment() {
+    log_info "Setting up environment files..."
     
-    echo "[DEV] Verifying backend health..."
-    for i in {1..30}; do
-        if curl -f http://localhost:5000/api/health 2>/dev/null; then
-            echo "[DEV] Backend is healthy"
+    # Backend .env
+    if [ ! -f backend/.env ]; then
+        log_info "Creating backend/.env from example..."
+        cp backend/.env.example backend/.env
+        log_success "Backend .env created"
+    fi
+    
+    # Frontend .env.local
+    if [ ! -f frontend/.env.local ]; then
+        if [ -f frontend/.env.example ]; then
+            log_info "Creating frontend/.env.local from example..."
+            cp frontend/.env.example frontend/.env.local
+            log_success "Frontend .env.local created"
+        else
+            log_error "frontend/.env.example not found!"
+            exit 1
+        fi
+    fi
+}
+
+# Smart container management
+manage_containers() {
+    log_info "Managing containers intelligently..."
+    
+    # Check if Jenkins is running
+    if ! docker compose -f docker-compose.dev.yml ps jenkins | grep -q "running"; then
+        log_warning "Jenkins not running, starting Jenkins first..."
+        docker compose -f docker-compose.dev.yml up -d jenkins
+        
+        # Wait for Jenkins to be healthy
+        log_info "Waiting for Jenkins to be healthy..."
+        for i in {1..20}; do
+            if docker compose -f docker-compose.dev.yml ps jenkins | grep -q "healthy"; then
+                log_success "Jenkins is healthy"
+                break
+            fi
+            if [ $i -eq 20 ]; then
+                log_error "Jenkins failed to start properly"
+                exit 1
+            fi
+            sleep 5
+        done
+    fi
+    
+    # Stop and remove only app containers
+    log_info "Stopping application containers..."
+    docker compose -f docker-compose.dev.yml stop backend frontend 2>/dev/null || true
+    docker compose -f docker-compose.dev.yml rm -f backend frontend 2>/dev/null || true
+    
+    # Start app containers without dependencies
+    log_info "Starting application containers..."
+    docker compose -f docker-compose.dev.yml up -d --no-deps backend frontend
+    
+    # Quick status check
+    sleep 5
+    docker compose -f docker-compose.dev.yml ps backend frontend
+}
+
+# Comprehensive health checks
+health_check() {
+    log_info "Running comprehensive health checks..."
+    
+    # Backend health check
+    log_info "Checking backend health..."
+    for i in {1..20}; do
+        if curl -sf http://localhost:5000/api/health >/dev/null 2>&1; then
+            log_success "Backend is healthy (attempt $i)"
             break
         fi
-        if [ $i -eq 30 ]; then
-            echo "[DEV] Warning: Backend health check failed after 30 attempts"
+        if [ $i -eq 20 ]; then
+            log_error "Backend health check failed"
+            docker compose -f docker-compose.dev.yml logs backend --tail=20
+            exit 1
         fi
-        sleep 2
+        sleep 3
     done
-
-    echo "[DEV] Verifying frontend health..."
+    
+    # Frontend health check
+    log_info "Checking frontend health..."
     for i in {1..15}; do
-        if curl -f http://localhost:3000 2>/dev/null; then
-            echo "[DEV] Frontend is healthy"
+        if curl -sf http://localhost:3000 >/dev/null 2>&1; then
+            log_success "Frontend is healthy (attempt $i)"
             break
         fi
         if [ $i -eq 15 ]; then
-            echo "[DEV] Warning: Frontend health check failed after 15 attempts"
+            log_warning "Frontend health check failed, but continuing..."
+            docker compose -f docker-compose.dev.yml logs frontend --tail=20
         fi
-        sleep 2
+        sleep 3
     done
-fi
+}
 
-echo "[DEV] Development deployment complete."
+# Performance monitoring
+monitor_performance() {
+    log_info "Collecting performance metrics..."
+    
+    # Container stats
+    echo "=== Container Resource Usage ==="
+    docker compose -f docker-compose.dev.yml ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+    
+    # Quick memory/CPU check
+    echo "=== System Resources ==="
+    docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}" 2>/dev/null || true
+}
+
+# Main deployment function
+main() {
+    local start_time=$(date +%s)
+    
+    log_info "🚀 Starting enhanced development deployment..."
+    
+    setup_environment
+    manage_containers
+    health_check
+    monitor_performance
+    
+    local end_time=$(date +%s)
+    local duration=$((end_time - start_time))
+    
+    log_success "🎉 Deployment completed successfully in ${duration}s!"
+    log_info "📊 Services are running at:"
+    log_info "   - Jenkins: http://localhost:8081/jenkins"
+    log_info "   - Backend API: http://localhost:5000"
+    log_info "   - Frontend: http://localhost:3000"
+}
+
+# Trap errors for cleanup
+trap 'log_error "Deployment failed! Check logs above for details."' ERR
+
+# Execute main function
+main "$@"
