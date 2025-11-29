@@ -3,7 +3,6 @@ pipeline {
 
     options {
         timeout(time: 45, unit: 'MINUTES') // Optimized timeout
-        timestamps()
         buildDiscarder(logRotator(numToKeepStr: '10'))
         skipDefaultCheckout(false)
         retry(2) // Auto-retry failed builds
