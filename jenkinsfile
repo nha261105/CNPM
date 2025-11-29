@@ -22,28 +22,28 @@ pipeline {
     }
 
     stages {
-        stage('Environment Check') {
-            steps {
-                echo 'Checking environment prerequisites...'
-                sh 'docker --version || (echo "Docker not installed!" && exit 1)'
-                sh 'docker compose version || (echo "Docker Compose not installed!" && exit 1)'
-                sh '[ -x scripts/deploy-dev.sh ] || (echo "scripts/deploy-dev.sh is not executable!" && exit 1)'
-                sh '[ -x scripts/deploy-staging.sh ] || (echo "scripts/deploy-staging.sh is not executable!" && exit 1)'
-                sh '[ -x scripts/deploy-prod.sh ] || (echo "scripts/deploy-prod.sh is not executable!" && exit 1)'
-                sh '[ -f docker-compose.dev.yml ] || (echo "docker-compose.dev.yml missing!" && exit 1)'
-            // sh '[ -f docker-compose.prod.yml ] || (echo "docker-compose.prod.yml missing!" && exit 1)'
-                script {
-                    try {
-                        withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                            echo 'DockerHub credentials found.'
-                        }
-                    } catch (e) {
-                        echo 'DockerHub credentials not configured (non-blocking if you do not push images).'
-                    }
-                }
-                echo 'Environment check passed.'
-            }
-        }
+        // stage('Environment Check') {
+        //     steps {
+        //         echo 'Checking environment prerequisites...'
+        //         sh 'docker --version || (echo "Docker not installed!" && exit 1)'
+        //         sh 'docker compose version || (echo "Docker Compose not installed!" && exit 1)'
+        //         sh '[ -x scripts/deploy-dev.sh ] || (echo "scripts/deploy-dev.sh is not executable!" && exit 1)'
+        //         sh '[ -x scripts/deploy-staging.sh ] || (echo "scripts/deploy-staging.sh is not executable!" && exit 1)'
+        //         sh '[ -x scripts/deploy-prod.sh ] || (echo "scripts/deploy-prod.sh is not executable!" && exit 1)'
+        //         sh '[ -f docker-compose.dev.yml ] || (echo "docker-compose.dev.yml missing!" && exit 1)'
+        //     // sh '[ -f docker-compose.prod.yml ] || (echo "docker-compose.prod.yml missing!" && exit 1)'
+        //         script {
+        //             try {
+        //                 withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+        //                     echo 'DockerHub credentials found.'
+        //                 }
+        //             } catch (e) {
+        //                 echo 'DockerHub credentials not configured (non-blocking if you do not push images).'
+        //             }
+        //         }
+        //         echo 'Environment check passed.'
+        //     }
+        // }
 
         stage('Checkout') {
             steps {
@@ -100,78 +100,78 @@ pipeline {
             }
         }
 
-        stage('Code Quality Check') {
-            parallel {
-                stage('Lint Backend') {
-                    steps {
-                        dir('backend') {
-                            sh 'npm run lint || echo "Backend linting issues found (non-blocking)"'
-                        }
-                    }
-                }
-                stage('Lint Frontend') {
-                    steps {
-                        dir('frontend') {
-                            sh 'npm run lint || echo "Frontend linting issues found (non-blocking)"'
-                        }
-                    }
-                }
-            }
-        }
+    // stage('Code Quality Check') {
+    //     parallel {
+    //         stage('Lint Backend') {
+    //             steps {
+    //                 dir('backend') {
+    //                     sh 'npm run lint || echo "Backend linting issues found (non-blocking)"'
+    //                 }
+    //             }
+    //         }
+    //         stage('Lint Frontend') {
+    //             steps {
+    //                 dir('frontend') {
+    //                     sh 'npm run lint || echo "Frontend linting issues found (non-blocking)"'
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
 
-        stage('Security Scan') {
-            steps {
-                dir('backend') { sh 'npm audit --audit-level=high || true' }
-                dir('frontend') { sh 'npm audit --audit-level=high || true' }
-            }
-        }
+    // stage('Security Scan') {
+    //     steps {
+    //         dir('backend') { sh 'npm audit --audit-level=high || true' }
+    //         dir('frontend') { sh 'npm audit --audit-level=high || true' }
+    //     }
+    // }
 
-        stage('Build Docker Images') {
-            steps {
-                script {
-                    parallel (
-                        "Backend Image": {
-                            sh '''
-                                echo "🏗️ Building backend Docker image..."
-                                docker build \
-                                    --cache-from smartbus-backend:latest \
-                                    --build-arg BUILDKIT_INLINE_CACHE=1 \
-                                    -t smartbus-backend:latest \
-                                    -t smartbus-backend:${BUILD_NUMBER} \
-                                    -f backend/Dockerfile.dev ./backend
-                            '''
-                        },
-                        "Frontend Image": {
-                            sh '''
-                                echo "🏗️ Building frontend Docker image..."
-                                docker build \
-                                    --cache-from smartbus-frontend:latest \
-                                    --build-arg BUILDKIT_INLINE_CACHE=1 \
-                                    -t smartbus-frontend:latest \
-                                    -t smartbus-frontend:${BUILD_NUMBER} \
-                                    -f frontend/Dockerfile.dev ./frontend
-                            '''
-                        }
-                    )
-                    echo "✅ All Docker images built successfully"
-                }
-            }
-        }
+    // stage('Build Docker Images') {
+    //     steps {
+    //         script {
+    //             parallel (
+    //                 "Backend Image": {
+    //                     sh '''
+    //                         echo "🏗️ Building backend Docker image..."
+    //                         docker build \
+    //                             --cache-from smartbus-backend:latest \
+    //                             --build-arg BUILDKIT_INLINE_CACHE=1 \
+    //                             -t smartbus-backend:latest \
+    //                             -t smartbus-backend:${BUILD_NUMBER} \
+    //                             -f backend/Dockerfile.dev ./backend
+    //                     '''
+    //                 },
+    //                 "Frontend Image": {
+    //                     sh '''
+    //                         echo "🏗️ Building frontend Docker image..."
+    //                         docker build \
+    //                             --cache-from smartbus-frontend:latest \
+    //                             --build-arg BUILDKIT_INLINE_CACHE=1 \
+    //                             -t smartbus-frontend:latest \
+    //                             -t smartbus-frontend:${BUILD_NUMBER} \
+    //                             -f frontend/Dockerfile.dev ./frontend
+    //                     '''
+    //                 }
+    //             )
+    //             echo "✅ All Docker images built successfully"
+    //         }
+    //     }
+    // }
 
-        stage('Push Docker Images') {
-            // Always run this stage
-            steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                        sh 'docker tag smartbus-backend:latest $DOCKER_USER/smartbus-backend:latest'
-                        sh 'docker tag smartbus-frontend:latest $DOCKER_USER/smartbus-frontend:latest'
-                        sh 'docker push $DOCKER_USER/smartbus-backend:latest'
-                        sh 'docker push $DOCKER_USER/smartbus-frontend:latest'
-                    }
-                }
-            }
-        }
+    // stage('Push Docker Images') {
+    //     // Always run this stage
+    //     steps {
+    //         script {
+    //             withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+    //                 sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+    //                 sh 'docker tag smartbus-backend:latest $DOCKER_USER/smartbus-backend:latest'
+    //                 sh 'docker tag smartbus-frontend:latest $DOCKER_USER/smartbus-frontend:latest'
+    //                 sh 'docker push $DOCKER_USER/smartbus-backend:latest'
+    //                 sh 'docker push $DOCKER_USER/smartbus-frontend:latest'
+    //             }
+    //         }
+    //     }
+    // }
 
         stage('Deploy to Development') {
             steps { 
@@ -194,88 +194,88 @@ pipeline {
             }
         }
 
-        stage('Deploy to Staging') {
-            // Always run this stage
-            steps { sh 'bash scripts/deploy-staging.sh' }
-        }
+    // stage('Deploy to Staging') {
+    //     // Always run this stage
+    //     steps { sh 'bash scripts/deploy-staging.sh' }
+    // }
 
-        stage('Deploy Frontend (Vercel)') {
-                    // Always run this stage
-                    steps {
-                        echo 'Triggering Vercel deploy hook...'
-                        sh '''
-                            set -euo pipefail
-                            for i in 1 2 3; do
-                                echo "Vercel hook POST attempt #$i ..."
-                                HTTP_CODE=$(curl -s -o /tmp/vercel_resp.json -w "%{http_code}" -X POST "https://api.vercel.com/v1/integrations/deploy/prj_clKk0bSXKxWNDvdaiCTiTstGTVPS/YCJaNRda40")
-                                cat /tmp/vercel_resp.json || true
-                                echo "Vercel HTTP status: $HTTP_CODE"
-                                if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-                                    echo "Vercel deploy hook accepted."
-                                    break
-                                fi
-                                if [ "$i" -eq 3 ]; then
-                                    echo "Vercel deploy hook failed after 3 attempts."
-                                    exit 1
-                                fi
-                                sleep $((i * 5))
-                            done
-                        '''
-                    }
-        }
+    // stage('Deploy Frontend (Vercel)') {
+    //     // Always run this stage
+    //     steps {
+    //         echo 'Triggering Vercel deploy hook...'
+    //         sh '''
+    //             set -euo pipefail
+    //             for i in 1 2 3; do
+    //                 echo "Vercel hook POST attempt #$i ..."
+    //                 HTTP_CODE=$(curl -s -o /tmp/vercel_resp.json -w "%{http_code}" -X POST "https://api.vercel.com/v1/integrations/deploy/prj_clKk0bSXKxWNDvdaiCTiTstGTVPS/YCJaNRda40")
+    //                 cat /tmp/vercel_resp.json || true
+    //                 echo "Vercel HTTP status: $HTTP_CODE"
+    //                 if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+    //                     echo "Vercel deploy hook accepted."
+    //                     break
+    //                 fi
+    //                 if [ "$i" -eq 3 ]; then
+    //                     echo "Vercel deploy hook failed after 3 attempts."
+    //                     exit 1
+    //                 fi
+    //                 sleep $((i * 5))
+    //             done
+    //         '''
+    //     }
+    // }
 
-        stage('Deploy Backend (Render)') {
-                    // Always run this stage
-                    steps {
-                        echo 'Triggering Render deploy hook...'
-                        sh '''
-                            set -euo pipefail
-                            for i in 1 2 3; do
-                                echo "Render hook POST attempt #$i ..."
-                                HTTP_CODE=$(curl -s -o /tmp/render_resp.json -w "%{http_code}" -X POST "https://api.render.com/deploy/srv-d4hjsb0dl3ps739r80jg?key=n5Ktij-19n8")
-                                cat /tmp/render_resp.json || true
-                                echo "Render HTTP status: $HTTP_CODE"
-                                if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-                                    echo "Render deploy hook accepted."
-                                    break
-                                fi
-                                if [ "$i" -eq 3 ]; then
-                                    echo "Render deploy hook failed after 3 attempts."
-                                    exit 1
-                                fi
-                                sleep $((i * 5))
-                            done
-                        '''
-                    }
-        }
+    // stage('Deploy Backend (Render)') {
+    //     // Always run this stage
+    //     steps {
+    //         echo 'Triggering Render deploy hook...'
+    //         sh '''
+    //             set -euo pipefail
+    //             for i in 1 2 3; do
+    //                 echo "Render hook POST attempt #$i ..."
+    //                 HTTP_CODE=$(curl -s -o /tmp/render_resp.json -w "%{http_code}" -X POST "https://api.render.com/deploy/srv-d4hjsb0dl3ps739r80jg?key=n5Ktij-19n8")
+    //                 cat /tmp/render_resp.json || true
+    //                 echo "Render HTTP status: $HTTP_CODE"
+    //                 if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+    //                     echo "Render deploy hook accepted."
+    //                     break
+    //                 fi
+    //                 if [ "$i" -eq 3 ]; then
+    //                     echo "Render deploy hook failed after 3 attempts."
+    //                     exit 1
+    //                 fi
+    //                 sleep $((i * 5))
+    //             done
+    //         '''
+    //     }
+    // }
 
-        stage('Production Approval') {
-            // Always run this stage
-            steps {
-                timeout(time: 30, unit: 'MINUTES') {
-                    input message: 'Deploy to Production?', ok: 'Deploy', submitter: 'admin'
-                }
-            }
-        }
+    // stage('Production Approval') {
+    //     // Always run this stage
+    //     steps {
+    //         timeout(time: 30, unit: 'MINUTES') {
+    //             input message: 'Deploy to Production?', ok: 'Deploy', submitter: 'admin'
+    //         }
+    //     }
+    // }
 
-        stage('Deploy to Production') {
-            // Always run this stage
-            steps { sh 'bash scripts/deploy-prod.sh' }
-        }
+    // stage('Deploy to Production') {
+    //     // Always run this stage
+    //     steps { sh 'bash scripts/deploy-prod.sh' }
+    // }
 
-        // stage('Smoke Tests') {
-        //     when { branch 'main' }
-        //     steps {
-        //         echo 'Running smoke tests...'
-        //         sh '''
-        //             sleep 10
-        //             # Customize these URLs for your real endpoints:
-        //             # curl -f http://localhost:3000/ || echo "FE not ready"
-        //             # curl -f https://your-backend.example.com/health || echo "BE not ready"
-        //             echo "Smoke tests skipped by default (customize Jenkinsfile)."
-        //         '''
-        //     }
-        // }
+    // stage('Smoke Tests') {
+    //     when { branch 'main' }
+    //     steps {
+    //         echo 'Running smoke tests...'
+    //         sh '''
+    //             sleep 10
+    //             # Customize these URLs for your real endpoints:
+    //             # curl -f http://localhost:3000/ || echo "FE not ready"
+    //             # curl -f https://your-backend.example.com/health || echo "BE not ready"
+    //             echo "Smoke tests skipped by default (customize Jenkinsfile)."
+    //         '''
+    //     }
+    // }
     }
 
     post {
