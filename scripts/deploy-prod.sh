@@ -25,9 +25,8 @@ echo "[PROD] Pulling latest images..."
 docker pull $DOCKER_USER/smartbus-backend:latest
 docker pull $DOCKER_USER/smartbus-frontend:latest
 
-echo "[PROD] Restarting production containers..."
-docker compose -f $docker_compose_file down || true
-docker compose -f $docker_compose_file up -d
+echo "[PROD] Restarting backend/frontend containers (no Jenkins downtime)..."
+docker compose -f $docker_compose_file up -d backend frontend
 
 echo "[PROD] Running database migrations (if needed)..."
 docker exec backend_prod_container npm run migrate || true
