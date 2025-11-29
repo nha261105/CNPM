@@ -77,9 +77,9 @@ pipeline {
                     steps {
                         dir('frontend') {
                             sh '''
-                                # Optimized npm install and build
+                                # Clean build cache and dependencies
+                                rm -rf .next node_modules
                                 npm ci --cache $NPM_CONFIG_CACHE --prefer-offline --no-audit --no-fund
-                                
                                 # Next.js build with optimization
                                 npm run build
                             '''
