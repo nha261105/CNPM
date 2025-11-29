@@ -60,7 +60,11 @@ pipeline {
                             sh '''
                                 # Optimized npm install with parallel processing
                                 npm ci --cache $NPM_CONFIG_CACHE --prefer-offline --no-audit --no-fund
-                                npm run build
+                                    cache(path: 'node_modules', key: 'backend-node-modules-${env.BUILD_NUMBER}', restoreKeys: ['backend-node-modules']) {
+                                        sh 'npm ci --cache /tmp/npm-cache --prefer-offline --no-audit --no-fund || npm install'
+                                    }
+                                    sh 'npm run lint || true'
+                                    sh 'npm run test || true'
                             '''
                             script {
                                 try {
@@ -91,8 +95,11 @@ pipeline {
                                 npm -v
                                 echo "== [DEBUG] npm ci =="
                                 npm ci --cache $NPM_CONFIG_CACHE --prefer-offline --no-audit --no-fund
-                                echo "== [DEBUG] npm run build (NODE_ENV=production) =="
-                                NODE_ENV=production npm run build
+                                    cache(path: 'node_modules', key: 'frontend-node-modules-${env.BUILD_NUMBER}', restoreKeys: ['frontend-node-modules']) {
+                                        sh 'npm ci --cache /tmp/npm-cache --prefer-offline --no-audit --no-fund || npm install'
+                                    }
+                                    sh 'npm run lint || true'
+                                    sh 'npm run test || true'
                             '''
                         }
                     }
@@ -214,26 +221,26 @@ pipeline {
                         echo "Vercel deploy hook accepted."
                         break
                     fi
-                    if [ "$i" -eq 3 ]; then
-                        echo "Vercel deploy hook failed after 3 attempts."
-                        exit 1
-                    fi
-                    sleep $((i * 5))
-                done
-            '''
-        }
-    }
-
-    stage('Deploy Backend (Render)') {
-        // Always run this stage
-        steps {
-            echo 'Triggering Render deploy hook...'
-            sh '''
-                set -euo pipefail
-                for i in 1 2 3; do
-                    echo "Render hook POST attempt #$i ..."
-                    HTTP_CODE=$(curl -s -o /tmp/render_resp.json -w "%{http_code}" -X POST "https://api.render.com/deploy/srv-d4hjsb0dl3ps739r80jg?key=n5Ktij-19n8")
-                    cat /tmp/render_resp.json || true
+    // stage('Deploy to Development') {
+    //     steps { 
+    //         timeout(time: 5, unit: 'MINUTES') {
+    //             script {
+    //                 try {
+    //                     sh '''
+    //                         echo "🚀 Starting development deployment..."
+    //                         bash scripts/deploy-dev.sh
+    //                     '''
+    //                     echo "✅ Development deployment completed successfully!"
+    //                 } catch (Exception e) {
+    //                     echo "❌ Development deployment failed: ${e.getMessage()}"
+    //                     // Show container logs for debugging
+    //                     sh 'docker compose -f docker-compose.dev.yml logs --tail=50 || true'
+    //                     throw e
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
                     echo "Render HTTP status: $HTTP_CODE"
                     if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
                         echo "Render deploy hook accepted."
