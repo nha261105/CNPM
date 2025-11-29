@@ -74,25 +74,25 @@ pipeline {
                     }
                 }
                 stage('Frontend') {
-                    steps {
-                        dir('frontend') {
                             sh '''
-                                # Clean build cache and dependencies (triệt để)
-                                rm -rf .next node_modules
+                                echo "== [DEBUG] Before clean workspace =="
+                                ls -la
+                                echo "== [DEBUG] Remove .next, node_modules, npm cache =="
+                                rm -rf .next node_modules /tmp/npm-cache
                                 npm cache clean --force
+                                echo "== [DEBUG] After clean workspace =="
+                                ls -la
+                                echo "== [DEBUG] Node.js version =="
+                                node -v
+                                echo "== [DEBUG] Next.js version =="
+                                npx next --version || npm list next || echo "Next.js not found"
+                                echo "== [DEBUG] npm version =="
+                                npm -v
+                                echo "== [DEBUG] npm ci =="
                                 npm ci --cache $NPM_CONFIG_CACHE --prefer-offline --no-audit --no-fund
-                                echo "== [DEBUG] npm run build =="
-                                npm run build
+                                echo "== [DEBUG] npm run build (NODE_ENV=production) =="
+                                NODE_ENV=production npm run build
                             '''
-                            script {
-                                try {
-                                    sh 'npm run test || echo "Frontend tests skipped"'
-                                } catch (Exception e) {
-                                    echo "⚠️ Frontend tests not configured or failed"
-                                }
-                            }
-                        }
-                    }
                 }
             }
         }
