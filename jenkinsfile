@@ -57,49 +57,23 @@ pipeline {
                 stage('Backend') {
                     steps {
                         dir('backend') {
+                            echo 'Cài đặt và kiểm tra backend (chỉ lint/test, cache node_modules)'
                             sh '''
-                                # Optimized npm install with parallel processing
-                                npm ci --cache $NPM_CONFIG_CACHE --prefer-offline --no-audit --no-fund
-                                    cache(path: 'node_modules', key: 'backend-node-modules-${env.BUILD_NUMBER}', restoreKeys: ['backend-node-modules']) {
-                                        sh 'npm ci --cache /tmp/npm-cache --prefer-offline --no-audit --no-fund || npm install'
-                                    }
-                                    sh 'npm run lint || true'
-                                    sh 'npm run test || true'
+                                npm ci --cache $NPM_CONFIG_CACHE --prefer-offline --no-audit --no-fund || npm install
+                                npm run lint || true
+                                npm run test || true
                             '''
-                            script {
-                                try {
-                                    sh 'npm test'
-                                } catch (Exception e) {
-                                    echo "⚠️ Backend tests failed or not configured: ${e.getMessage()}"
-                                }
-                            }
                         }
                     }
                 }
                 stage('Frontend') {
                     steps {
                         dir('frontend') {
+                            echo 'Cài đặt và kiểm tra frontend (chỉ lint/test, cache node_modules)'
                             sh '''
-                                echo "== [DEBUG] Before clean workspace =="
-                                ls -la
-                                echo "== [DEBUG] Remove .next, node_modules =="
-                                rm -rf .next node_modules
-                                npm cache clean --force
-                                echo "== [DEBUG] After clean workspace =="
-                                ls -la
-                                echo "== [DEBUG] Node.js version =="
-                                node -v
-                                echo "== [DEBUG] Next.js version =="
-                                npx next --version || npm list next || echo "Next.js not found"
-                                echo "== [DEBUG] npm version =="
-                                npm -v
-                                echo "== [DEBUG] npm ci =="
-                                npm ci --cache $NPM_CONFIG_CACHE --prefer-offline --no-audit --no-fund
-                                    cache(path: 'node_modules', key: 'frontend-node-modules-${env.BUILD_NUMBER}', restoreKeys: ['frontend-node-modules']) {
-                                        sh 'npm ci --cache /tmp/npm-cache --prefer-offline --no-audit --no-fund || npm install'
-                                    }
-                                    sh 'npm run lint || true'
-                                    sh 'npm run test || true'
+                                npm ci --cache $NPM_CONFIG_CACHE --prefer-offline --no-audit --no-fund || npm install
+                                npm run lint || true
+                                npm run test || true
                             '''
                         }
                     }
@@ -209,65 +183,30 @@ pipeline {
     stage('Deploy Frontend (Vercel)') {
         // Always run this stage
         steps {
-            echo 'Triggering Vercel deploy hook...'
-            sh '''
-                set -euo pipefail
-                for i in 1 2 3; do
-                    echo "Vercel hook POST attempt #$i ..."
-                    HTTP_CODE=$(curl -s -o /tmp/vercel_resp.json -w "%{http_code}" -X POST "https://api.vercel.com/v1/integrations/deploy/prj_clKk0bSXKxWNDvdaiCTiTstGTVPS/YCJaNRda40")
-                    cat /tmp/vercel_resp.json || true
-                    echo "Vercel HTTP status: $HTTP_CODE"
-                    if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-                        echo "Vercel deploy hook accepted."
-                        break
-                    fi
-    // stage('Deploy to Development') {
-    //     steps { 
-    //         timeout(time: 5, unit: 'MINUTES') {
-    //             script {
-    //                 try {
-    //                     sh '''
-    //                         echo "🚀 Starting development deployment..."
-    //                         bash scripts/deploy-dev.sh
-    //                     '''
-    //                     echo "✅ Development deployment completed successfully!"
-    //                 } catch (Exception e) {
-    //                     echo "❌ Development deployment failed: ${e.getMessage()}"
-    //                     // Show container logs for debugging
-    //                     sh 'docker compose -f docker-compose.dev.yml logs --tail=50 || true'
-    //                     throw e
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-                    echo "Render HTTP status: $HTTP_CODE"
-                    if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-                        echo "Render deploy hook accepted."
-                        break
-                    fi
-                    if [ "$i" -eq 3 ]; then
-                        echo "Render deploy hook failed after 3 attempts."
-                        exit 1
-                    fi
-                    sleep $((i * 5))
-                done
-            '''
+                        echo 'Bắt đầu gọi Vercel deploy hook...'
+                        sh '''
+set -euo pipefail
+# Gọi hook Vercel tối đa 3 lần nếu thất bại
+for i in 1 2 3; do
+    echo "Vercel hook POST attempt #$i ..."
+    HTTP_CODE=$(curl -s -o /tmp/vercel_resp.json -w "%{http_code}" -X POST "https://api.vercel.com/v1/integrations/deploy/prj_clKk0bSXKxWNDvdaiCTiTstGTVPS/YCJaNRda40")
+    cat /tmp/vercel_resp.json || true
+    echo "Vercel HTTP status: $HTTP_CODE"
+    if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+        echo "Vercel deploy hook thành công."
+        break
+    fi
+    if [ "$i" -eq 3 ]; then
+        echo "Vercel deploy hook thất bại sau 3 lần thử."
+        exit 1
+    fi
+    sleep $((i * 5))
+done
+'''
         }
     }
 
-    // stage('Production Approval') {
-    //     // Always run this stage
-    //     steps {
-    //         timeout(time: 30, unit: 'MINUTES') {
-    //             input message: 'Deploy to Production?', ok: 'Deploy', submitter: 'admin'
-    //         }
-    //     }
-    // }
-
-    // stage('Deploy to Production') {
-    //     // Always run this stage
-    //     steps { sh 'bash scripts/deploy-prod.sh' }
+        // Các stage duyệt production và deploy production đã được comment lại để tối ưu tốc độ pipeline
     // }
 
     // stage('Smoke Tests') {
