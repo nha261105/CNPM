@@ -74,6 +74,8 @@ pipeline {
                     }
                 }
                 stage('Frontend') {
+                    steps {
+                        dir('frontend') {
                             sh '''
                                 echo "== [DEBUG] Before clean workspace =="
                                 ls -la
@@ -93,6 +95,8 @@ pipeline {
                                 echo "== [DEBUG] npm run build (NODE_ENV=production) =="
                                 NODE_ENV=production npm run build
                             '''
+                        }
+                    }
                 }
             }
         }
