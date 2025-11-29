@@ -1,6 +1,6 @@
-# Cong Nghe Phan Men - Smart Bus System
+# Cong Nghe Phan Men - Smart Bus System -
 
-> Thong tin thanh vien nhom
+> Thong tin thanh vien nhom -
 >
 > |    MSSV    |      Ho ten       |
 > | :--------: | :---------------: |
@@ -53,7 +53,7 @@ pm
 ### Kiem tra version:
 
 ```bash
-node -v        # v22.14.0
+node -v        # v22.14.0 -
 npm -v         # 10.9.2
 docker --version
 docker compose version

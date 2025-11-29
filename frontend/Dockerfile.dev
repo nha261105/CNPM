@@ -1,20 +1,27 @@
 FROM node:20-alpine
 
+# Install system dependencies
+RUN apk add --no-cache libc6-compat
+
 WORKDIR /app
 
-# Install package co trong package.json
+# Copy package files
 COPY package*.json ./
 
-RUN npm install
+# Install dependencies
+RUN npm ci
 
-#Copy may cai khac
-COPY  . .
+# Copy source code
+COPY . .
 
-#Expose Nextjs dev port
+# Build the application
+RUN npm run build
+
+# Change ownership
+RUN chown -R node:node /app
+
+USER node
+
 EXPOSE 3000
 
-#Run in dev mode (Turbopack enabled (Nextjs))
-CMD [ "npm", "run", "dev" ]
-
-RUN chown -R node:node /app
-USER node
+CMD ["npm", "run", "start"]

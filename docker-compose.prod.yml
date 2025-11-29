@@ -1,75 +1,56 @@
+version: "3.8"
 services:
-  # Jenkins CI/CD Server  
   jenkins:
-    build:
-      context: .
-      dockerfile: Dockerfile.jenkins
     image: jenkins-nodejs:lts
-    container_name: jenkins_dev
+    container_name: jenkins_prod
     restart: unless-stopped
     privileged: true
     user: root
     ports:
-      - "8081:8081" # Jenkins Web UI (port 8081)
-      - "50001:50000" # Jenkins agent communication
+      - "8081:8081"
+      - "50001:50000"
     volumes:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
       - ./:/workspace
-      - npm_cache:/tmp/npm-cache # NPM cache volume
+      - npm_cache_prod:/tmp/npm-cache
     environment:
       - JENKINS_OPTS=--prefix=/jenkins --httpPort=8081 --sessionTimeout=1440
       - JAVA_OPTS=-Xmx2g -Djenkins.install.runSetupWizard=false
     networks:
       - smartbus-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8081/jenkins/login || exit 1"]
+      test:
+        ["CMD-SHELL", "curl -f http://localhost:8081/jenkins/login || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 3
       start_period: 45s
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.dev
-    container_name: backend_dev
+    image: thanhhai151200/smartbus-backend:latest
+    container_name: backend_prod
     restart: unless-stopped
     ports:
       - "5000:5000"
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
     env_file:
       - ./backend/.env
-    command: npm run dev
-    user: root
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
     networks:
       - smartbus-network
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.dev
-    container_name: frontend_dev
+    image: thanhhai151200/smartbus-frontend:latest
+    container_name: frontend_prod
     restart: unless-stopped
     ports:
       - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
-    # env_file:
-    #   - ./frontend/.env
     depends_on:
       backend:
         condition: service_started
-    command: npm run dev
-    user: root
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - NEXT_PUBLIC_API_URL=http://backend:5000
     networks:
       - smartbus-network
@@ -77,8 +58,8 @@ services:
 volumes:
   jenkins_home:
     name: jenkins_home_dev
-  npm_cache:
-    name: npm_cache_dev
+  npm_cache_prod:
+    name: npm_cache_prod
 
 networks:
   smartbus-network:

@@ -2,12 +2,24 @@ pipeline {
     agent any
 
     options {
-        timeout(time: 60, unit: 'MINUTES')
+        timeout(time: 45, unit: 'MINUTES') // Optimized timeout
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        skipDefaultCheckout(false)
+        retry(2) // Auto-retry failed builds
     }
 
     environment {
         BUILD_DATE = sh(script: "date +%Y-%m-%d_%H-%M-%S", returnStdout: true).trim()
         NODE_VERSION = '22.x'
+        // Performance optimizations
+        DOCKER_BUILDKIT = '1'
+        COMPOSE_DOCKER_CLI_BUILD = '1'
+        NODE_ENV = 'development'
+        NEXT_TELEMETRY_DISABLED = '1'
+        // Cache optimization
+        NPM_CONFIG_CACHE = '/tmp/npm-cache'
+        NPM_CONFIG_PREFER_OFFLINE = 'true'
     }
 
     stages {
@@ -20,7 +32,7 @@ pipeline {
                 sh '[ -x scripts/deploy-staging.sh ] || (echo "scripts/deploy-staging.sh is not executable!" && exit 1)'
                 sh '[ -x scripts/deploy-prod.sh ] || (echo "scripts/deploy-prod.sh is not executable!" && exit 1)'
                 sh '[ -f docker-compose.dev.yml ] || (echo "docker-compose.dev.yml missing!" && exit 1)'
-                // sh '[ -f docker-compose.prod.yml ] || (echo "docker-compose.prod.yml missing!" && exit 1)'
+            // sh '[ -f docker-compose.prod.yml ] || (echo "docker-compose.prod.yml missing!" && exit 1)'
                 script {
                     try {
                         withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
@@ -46,19 +58,43 @@ pipeline {
                 stage('Backend') {
                     steps {
                         dir('backend') {
-                            sh 'npm ci || npm install'
-                            sh 'npm run build || true'
-                            sh 'npm test || echo "No backend tests or tests failed"'
+                            sh '''
+                                # Optimized npm install with parallel processing
+                                npm ci --cache $NPM_CONFIG_CACHE --prefer-offline --no-audit --no-fund
+                                npm run build
+                            '''
+                            script {
+                                try {
+                                    sh 'npm test'
+                                } catch (Exception e) {
+                                    echo "⚠️ Backend tests failed or not configured: ${e.getMessage()}"
+                                }
+                            }
                         }
                     }
                 }
                 stage('Frontend') {
                     steps {
                         dir('frontend') {
-                            sh 'npm ci || npm install'
-                            sh 'npm run build || true'
-                            // Uncomment if you have frontend tests
-                            // sh 'npm test || echo "No frontend tests or tests failed"'
+                            sh '''
+                                echo "== [DEBUG] Before clean workspace =="
+                                ls -la
+                                echo "== [DEBUG] Remove .next, node_modules =="
+                                rm -rf .next node_modules
+                                npm cache clean --force
+                                echo "== [DEBUG] After clean workspace =="
+                                ls -la
+                                echo "== [DEBUG] Node.js version =="
+                                node -v
+                                echo "== [DEBUG] Next.js version =="
+                                npx next --version || npm list next || echo "Next.js not found"
+                                echo "== [DEBUG] npm version =="
+                                npm -v
+                                echo "== [DEBUG] npm ci =="
+                                npm ci --cache $NPM_CONFIG_CACHE --prefer-offline --no-audit --no-fund
+                                echo "== [DEBUG] npm run build (NODE_ENV=production) =="
+                                NODE_ENV=production npm run build
+                            '''
                         }
                     }
                 }
@@ -92,17 +128,39 @@ pipeline {
         }
 
         stage('Build Docker Images') {
-            when { anyOf { branch 'main'; branch 'develop'; branch 'hai' } }
             steps {
-                sh '''
-                    docker build -t smartbus-backend:latest -f backend/Dockerfile.dev ./backend
-                    docker build -t smartbus-frontend:latest -f frontend/Dockerfile.dev ./frontend
-                '''
+                script {
+                    parallel (
+                        "Backend Image": {
+                            sh '''
+                                echo "🏗️ Building backend Docker image..."
+                                docker build \
+                                    --cache-from smartbus-backend:latest \
+                                    --build-arg BUILDKIT_INLINE_CACHE=1 \
+                                    -t smartbus-backend:latest \
+                                    -t smartbus-backend:${BUILD_NUMBER} \
+                                    -f backend/Dockerfile.dev ./backend
+                            '''
+                        },
+                        "Frontend Image": {
+                            sh '''
+                                echo "🏗️ Building frontend Docker image..."
+                                docker build \
+                                    --cache-from smartbus-frontend:latest \
+                                    --build-arg BUILDKIT_INLINE_CACHE=1 \
+                                    -t smartbus-frontend:latest \
+                                    -t smartbus-frontend:${BUILD_NUMBER} \
+                                    -f frontend/Dockerfile.dev ./frontend
+                            '''
+                        }
+                    )
+                    echo "✅ All Docker images built successfully"
+                }
             }
         }
 
         stage('Push Docker Images') {
-            when { branch 'main' }
+            // Always run this stage
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
@@ -117,71 +175,83 @@ pipeline {
         }
 
         stage('Deploy to Development') {
-            when { anyOf { branch 'develop'; branch 'hai' } }
-            steps { sh 'bash scripts/deploy-dev.sh' }
+            steps { 
+                timeout(time: 5, unit: 'MINUTES') {
+                    script {
+                        try {
+                            sh '''
+                                echo "🚀 Starting development deployment..."
+                                bash scripts/deploy-dev.sh
+                            '''
+                            echo "✅ Development deployment completed successfully!"
+                        } catch (Exception e) {
+                            echo "❌ Development deployment failed: ${e.getMessage()}"
+                            // Show container logs for debugging
+                            sh 'docker compose -f docker-compose.dev.yml logs --tail=50 || true'
+                            throw e
+                        }
+                    }
+                }
+            }
         }
 
         stage('Deploy to Staging') {
-            when { branch 'main' }
+            // Always run this stage
             steps { sh 'bash scripts/deploy-staging.sh' }
         }
 
         stage('Deploy Frontend (Vercel)') {
-            when { branch 'main' }
-            steps {
-                echo 'Triggering Vercel deploy hook...'
-                withCredentials([string(credentialsId: 'vercel-id', variable: 'VERCEL_HOOK')]) {
-                    sh '''
-                        set -euo pipefail
-                        for i in 1 2 3; do
-                          echo "Vercel hook POST attempt #$i ..."
-                          HTTP_CODE=$(curl -s -o /tmp/vercel_resp.json -w "%{http_code}" -X POST "${VERCEL_HOOK}")
-                          cat /tmp/vercel_resp.json || true
-                          echo "Vercel HTTP status: $HTTP_CODE"
-                          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-                            echo "Vercel deploy hook accepted."
-                            break
-                          fi
-                          if [ "$i" -eq 3 ]; then
-                            echo "Vercel deploy hook failed after 3 attempts."
-                            exit 1
-                          fi
-                          sleep $((i * 5))
-                        done
-                    '''
-                }
-            }
+                    // Always run this stage
+                    steps {
+                        echo 'Triggering Vercel deploy hook...'
+                        sh '''
+                            set -euo pipefail
+                            for i in 1 2 3; do
+                                echo "Vercel hook POST attempt #$i ..."
+                                HTTP_CODE=$(curl -s -o /tmp/vercel_resp.json -w "%{http_code}" -X POST "https://api.vercel.com/v1/integrations/deploy/prj_clKk0bSXKxWNDvdaiCTiTstGTVPS/YCJaNRda40")
+                                cat /tmp/vercel_resp.json || true
+                                echo "Vercel HTTP status: $HTTP_CODE"
+                                if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+                                    echo "Vercel deploy hook accepted."
+                                    break
+                                fi
+                                if [ "$i" -eq 3 ]; then
+                                    echo "Vercel deploy hook failed after 3 attempts."
+                                    exit 1
+                                fi
+                                sleep $((i * 5))
+                            done
+                        '''
+                    }
         }
 
         stage('Deploy Backend (Render)') {
-            when { branch 'main' }
-            steps {
-                echo 'Triggering Render deploy hook...'
-                withCredentials([string(credentialsId: 'render-id', variable: 'RENDER_HOOK')]) {
-                    sh '''
-                        set -euo pipefail
-                        for i in 1 2 3; do
-                          echo "Render hook POST attempt #$i ..."
-                          HTTP_CODE=$(curl -s -o /tmp/render_resp.json -w "%{http_code}" -X POST "${RENDER_HOOK}")
-                          cat /tmp/render_resp.json || true
-                          echo "Render HTTP status: $HTTP_CODE"
-                          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-                            echo "Render deploy hook accepted."
-                            break
-                          fi
-                          if [ "$i" -eq 3 ]; then
-                            echo "Render deploy hook failed after 3 attempts."
-                            exit 1
-                          fi
-                          sleep $((i * 5))
-                        done
-                    '''
-                }
-            }
+                    // Always run this stage
+                    steps {
+                        echo 'Triggering Render deploy hook...'
+                        sh '''
+                            set -euo pipefail
+                            for i in 1 2 3; do
+                                echo "Render hook POST attempt #$i ..."
+                                HTTP_CODE=$(curl -s -o /tmp/render_resp.json -w "%{http_code}" -X POST "https://api.render.com/deploy/srv-d4hjsb0dl3ps739r80jg?key=n5Ktij-19n8")
+                                cat /tmp/render_resp.json || true
+                                echo "Render HTTP status: $HTTP_CODE"
+                                if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+                                    echo "Render deploy hook accepted."
+                                    break
+                                fi
+                                if [ "$i" -eq 3 ]; then
+                                    echo "Render deploy hook failed after 3 attempts."
+                                    exit 1
+                                fi
+                                sleep $((i * 5))
+                            done
+                        '''
+                    }
         }
 
         stage('Production Approval') {
-            when { branch 'main' }
+            // Always run this stage
             steps {
                 timeout(time: 30, unit: 'MINUTES') {
                     input message: 'Deploy to Production?', ok: 'Deploy', submitter: 'admin'
@@ -190,7 +260,7 @@ pipeline {
         }
 
         stage('Deploy to Production') {
-            when { branch 'main' }
+            // Always run this stage
             steps { sh 'bash scripts/deploy-prod.sh' }
         }
 
