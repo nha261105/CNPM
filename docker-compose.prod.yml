@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 services:
   jenkins:
     image: jenkins-nodejs:lts
@@ -10,7 +10,7 @@ services:
       - "8081:8081"
       - "50001:50000"
     volumes:
-      - jenkins_home_prod:/var/jenkins_home
+      - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
       - ./:/workspace
       - npm_cache_prod:/tmp/npm-cache
@@ -20,7 +20,8 @@ services:
     networks:
       - smartbus-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8081/jenkins/login || exit 1"]
+      test:
+        ["CMD-SHELL", "curl -f http://localhost:8081/jenkins/login || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 3
@@ -55,8 +56,8 @@ services:
       - smartbus-network
 
 volumes:
-  jenkins_home_prod:
-    name: jenkins_home_prod
+  jenkins_home:
+    name: jenkins_home_dev
   npm_cache_prod:
     name: npm_cache_prod
 
