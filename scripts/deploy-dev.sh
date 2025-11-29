@@ -42,25 +42,7 @@ setup_environment() {
 manage_containers() {
     log_info "Managing containers intelligently..."
     
-    # Check if Jenkins is running
-    if ! docker compose -f docker-compose.dev.yml ps jenkins | grep -q "running"; then
-        log_warning "Jenkins not running, starting Jenkins first..."
-        docker compose -f docker-compose.dev.yml up -d jenkins
-        
-        # Wait for Jenkins to be healthy
-        log_info "Waiting for Jenkins to be healthy..."
-        for i in {1..20}; do
-            if docker compose -f docker-compose.dev.yml ps jenkins | grep -q "healthy"; then
-                log_success "Jenkins is healthy"
-                break
-            fi
-            if [ $i -eq 20 ]; then
-                log_error "Jenkins failed to start properly"
-                exit 1
-            fi
-            sleep 5
-        done
-    fi
+    # Jenkins container check removed to prevent unwanted restarts
     
     # Stop and remove only app containers
     log_info "Stopping application containers..."
