@@ -79,8 +79,8 @@ pipeline {
                             sh '''
                                 echo "== [DEBUG] Before clean workspace =="
                                 ls -la
-                                echo "== [DEBUG] Remove .next, node_modules, npm cache =="
-                                rm -rf .next node_modules /tmp/npm-cache
+                                echo "== [DEBUG] Remove .next, node_modules =="
+                                rm -rf .next node_modules
                                 npm cache clean --force
                                 echo "== [DEBUG] After clean workspace =="
                                 ls -la
