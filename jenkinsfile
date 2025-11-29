@@ -78,7 +78,7 @@ pipeline {
                         dir('frontend') {
                             sh '''
                                 # Clean build cache and dependencies (triệt để)
-                                rm -rf .next node_modules package-lock.json
+                                rm -rf .next node_modules
                                 npm cache clean --force
                                 npm ci --cache $NPM_CONFIG_CACHE --prefer-offline --no-audit --no-fund
                                 # Next.js build with optimization
