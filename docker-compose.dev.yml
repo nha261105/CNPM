@@ -21,7 +21,7 @@ services:
     networks:
       - smartbus-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/login || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/login || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -47,7 +47,8 @@ services:
     networks:
       - smartbus-network
     depends_on:
-      - jenkins
+      jenkins:
+        condition: service_healthy
 
   frontend:
     build:
@@ -64,7 +65,8 @@ services:
     # env_file:
     #   - ./frontend/.env
     depends_on:
-      - backend
+      backend:
+        condition: service_started
     command: npm run dev
     user: root
     environment:
