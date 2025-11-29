@@ -19,12 +19,50 @@ fi
 #!/bin/bash
 set -e
 
+echo "[DEV] Stopping backend & frontend containers (keeping Jenkins running)..."
+# Stop only backend and frontend containers, NOT Jenkins
+docker compose -f docker-compose.dev.yml stop backend frontend || true
+docker compose -f docker-compose.dev.yml rm -f backend frontend || true
 
-echo "[DEV] Restarting backend & frontend containers..."
-# Chỉ dừng và xóa backend, frontend, KHÔNG động vào jenkins_dev
-docker compose -f docker-compose.dev.yml up -d --force-recreate backend frontend
+echo "[DEV] Starting backend & frontend containers..."
+# Start only backend and frontend, don't recreate Jenkins
+docker compose -f docker-compose.dev.yml up -d backend frontend
+
+echo "[DEV] Waiting for containers to be ready..."
+sleep 10
 
 echo "[DEV] Checking service status..."
-docker compose -f docker-compose.dev.yml ps
+docker compose -f docker-compose.dev.yml ps backend frontend
+
+echo "[DEV] Running comprehensive health checks..."
+if [ -f "scripts/health-check.sh" ]; then
+    bash scripts/health-check.sh
+else
+    echo "[DEV] health-check.sh not found, using simple checks..."
+    
+    echo "[DEV] Verifying backend health..."
+    for i in {1..30}; do
+        if curl -f http://localhost:5000/api/health 2>/dev/null; then
+            echo "[DEV] Backend is healthy"
+            break
+        fi
+        if [ $i -eq 30 ]; then
+            echo "[DEV] Warning: Backend health check failed after 30 attempts"
+        fi
+        sleep 2
+    done
+
+    echo "[DEV] Verifying frontend health..."
+    for i in {1..15}; do
+        if curl -f http://localhost:3000 2>/dev/null; then
+            echo "[DEV] Frontend is healthy"
+            break
+        fi
+        if [ $i -eq 15 ]; then
+            echo "[DEV] Warning: Frontend health check failed after 15 attempts"
+        fi
+        sleep 2
+    done
+fi
 
 echo "[DEV] Development deployment complete."
