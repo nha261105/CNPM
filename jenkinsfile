@@ -55,7 +55,7 @@ pipeline {
                 stage('Frontend') {
                     steps {
                         dir('frontend') {
-                            sh 'npm ci --cache /tmp/npm-cache --prefer-offline --no-optional'
+                            sh 'npm ci --cache /tmp/npm-cache --prefer-offline'
                             sh 'NEXT_TELEMETRY_DISABLED=1 npm run build'
                             // Uncomment if you have frontend tests
                             // sh 'npm test || echo "No frontend tests or tests failed"'
