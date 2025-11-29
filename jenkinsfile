@@ -81,7 +81,7 @@ pipeline {
                                 rm -rf .next node_modules
                                 npm cache clean --force
                                 npm ci --cache $NPM_CONFIG_CACHE --prefer-offline --no-audit --no-fund
-                                # Next.js build with optimization
+                                echo "== [DEBUG] npm run build =="
                                 npm run build
                             '''
                             script {
