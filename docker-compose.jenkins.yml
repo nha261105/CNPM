@@ -20,7 +20,8 @@ services:
     networks:
       - smartbus-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8081/jenkins/login || exit 1"]
+      test:
+        ["CMD-SHELL", "curl -f http://localhost:8081/jenkins/login || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 3
