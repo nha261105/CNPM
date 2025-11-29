@@ -1,5 +1,5 @@
 services:
-  # Jenkins CI/CD Server
+  # Jenkins CI/CD Server  
   jenkins:
     build:
       context: .
@@ -11,21 +11,23 @@ services:
     user: root
     ports:
       - "8081:8081" # Jenkins Web UI (port 8081)
-      - "50001:50000" # Jenkins agent communication (đổi từ 50000 sang 50001)
+      - "50001:50000" # Jenkins agent communication
     volumes:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
       - ./:/workspace
+      - npm_cache:/tmp/npm-cache # NPM cache volume
     environment:
-      - JENKINS_OPTS=--prefix=/jenkins --httpPort=8081
+      - JENKINS_OPTS=--prefix=/jenkins --httpPort=8081 --sessionTimeout=1440
+      - JAVA_OPTS=-Xmx2g -Djenkins.install.runSetupWizard=false
     networks:
       - smartbus-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8081/login || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/jenkins/login || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 45s
 
   backend:
     build:
@@ -46,9 +48,6 @@ services:
       - NODE_ENV=development
     networks:
       - smartbus-network
-    depends_on:
-      jenkins:
-        condition: service_healthy
 
   frontend:
     build:
@@ -78,7 +77,12 @@ services:
 volumes:
   jenkins_home:
     name: jenkins_home_dev
+  npm_cache:
+    name: npm_cache_dev
 
 networks:
   smartbus-network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
