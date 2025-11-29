@@ -1,3 +1,4 @@
+
 FROM node:20-alpine
 
 # Install system dependencies
@@ -13,6 +14,14 @@ RUN npm ci
 
 # Copy source code
 COPY . .
+
+# Kiểm tra source code sau khi copy
+RUN echo "[DEBUG] Kiểm tra source code trong container..." \
+	&& ls -la /app \
+	&& if [ ! -f /app/package.json ]; then \
+		echo "[ERROR] Không tìm thấy /app/package.json. Có thể mount volume sai hoặc thiếu source code!"; \
+		exit 1; \
+	fi
 
 # Build the application
 RUN npm run build

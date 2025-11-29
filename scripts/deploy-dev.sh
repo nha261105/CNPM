@@ -9,6 +9,8 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+set -e
+
 log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
@@ -121,7 +123,6 @@ main() {
     
     log_success "🎉 Deployment completed successfully in ${duration}s!"
     log_info "📊 Services are running at:"
-    log_info "   - Jenkins: http://localhost:8081/jenkins"
     log_info "   - Backend API: http://localhost:5000"
     log_info "   - Frontend: http://localhost:3000"
 }

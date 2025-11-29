@@ -25,7 +25,6 @@ echo "[PROD] Pulling latest images..."
 docker pull $DOCKER_USER/smartbus-backend:latest
 docker pull $DOCKER_USER/smartbus-frontend:latest
 
-echo "[PROD] Restarting backend/frontend containers (no Jenkins downtime)..."
 docker compose -f $docker_compose_file up -d backend frontend
 
 echo "[PROD] Running database migrations (if needed)..."
