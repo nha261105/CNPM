@@ -5,7 +5,7 @@ console.log("BASE LOCAL URL:", process.env.NEXT_PUBLIC_BE_API_URL);
 
 
 const axiosClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_BE_API_URL!,
+  baseURL: process.env.NEXT_PUBLIC_EXPRESS_API_ON_RENDER_URL!,
   headers: {
     "Content-Type": "application/json",
   },
