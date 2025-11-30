@@ -130,7 +130,7 @@ export default function Nofitications() {
                         <div className="flex jutify-center items-center gap-2.5">
                           <Bell size={20} className="text-blue-600" />
                           <div className="text-base">
-                            Người gửi {item.sender_id.account[0].user_name} - {item.sender_id.type_user.type_user_name}
+                            Người gửi {item.sender_id.account[0].user_name}
                           </div>
                         </div>
                         <div className="text-xs text-muted-foreground">
@@ -192,7 +192,7 @@ export default function Nofitications() {
                         <div className="flex jutify-center items-center gap-2.5">
                           <Bell size={20} className="text-green-600" />
                           <div className="text-base">
-                            Gửi đến {item.receiver_id.account[0].user_name} - {item.receiver_id.type_user.type_user_name}
+                            Gửi đến {item.receiver_id.account[0].user_name}
                           </div>
                         </div>
                         <div className="text-xs text-muted-foreground">
