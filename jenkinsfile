@@ -14,24 +14,48 @@ pipeline {
                 stage('Backend') {
                     steps {
                         dir('backend') {
-                            echo 'Cài đặt và kiểm tra backend (chỉ lint/test, cache node_modules)'
-                            sh '''
-                                npm ci --cache $NPM_CONFIG_CACHE --prefer-offline --no-audit --no-fund || npm install
-                                npm run lint || true
-                                npm run test || true
-                            '''
+                            echo 'Cài đặt dependencies backend...'
+                            sh 'npm ci --cache $NPM_CONFIG_CACHE --prefer-offline --no-audit --no-fund || npm install'
+                            
+                            echo '🔍 Kiểm tra lint backend...'
+                            script {
+                                def lintStatus = sh(script: 'npm run lint', returnStatus: true)
+                                if (lintStatus != 0) {
+                                    error("❌ Backend lint failed! Vui lòng sửa các lỗi lint trước khi tiếp tục.")
+                                }
+                            }
+                            
+                            echo '🧪 Chạy tests backend...'
+                            script {
+                                def testStatus = sh(script: 'npm run test', returnStatus: true)
+                                if (testStatus != 0) {
+                                    error("❌ Backend tests failed! Vui lòng kiểm tra lại tests.")
+                                }
+                            }
                         }
                     }
                 }
                 stage('Frontend') {
                     steps {
                         dir('frontend') {
-                            echo 'Cài đặt và kiểm tra frontend (chỉ lint/test, cache node_modules)'
-                            sh '''
-                                npm ci --cache $NPM_CONFIG_CACHE --prefer-offline --no-audit --no-fund || npm install
-                                npm run lint || true
-                                npm run test || true
-                            '''
+                            echo 'Cài đặt dependencies frontend...'
+                            sh 'npm ci --cache $NPM_CONFIG_CACHE --prefer-offline --no-audit --no-fund || npm install'
+                            
+                            echo '🔍 Kiểm tra lint frontend...'
+                            script {
+                                def lintStatus = sh(script: 'npm run lint', returnStatus: true)
+                                if (lintStatus != 0) {
+                                    error("❌ Frontend lint failed! Vui lòng sửa các lỗi lint trước khi tiếp tục.")
+                                }
+                            }
+                            
+                            echo '🧪 Chạy tests frontend...'
+                            script {
+                                def testStatus = sh(script: 'npm run test', returnStatus: true)
+                                if (testStatus != 0) {
+                                    error("❌ Frontend tests failed! Vui lòng kiểm tra lại tests.")
+                                }
+                            }
                         }
                     }
                 }
