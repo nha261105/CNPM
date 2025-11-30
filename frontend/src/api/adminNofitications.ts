@@ -32,4 +32,4 @@ export class adminNofitication {
     );
     return res.data;
   }
-
+}
