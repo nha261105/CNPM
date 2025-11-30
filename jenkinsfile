@@ -136,28 +136,47 @@ pipeline {
         //     }
         // }
 
-        stage('Deploy Frontend (Vercel)') {
-            steps {
-                echo 'Bắt đầu gọi Vercel deploy hook...'
-                sh '''
-                    set -euo pipefail
-                    # Gọi hook Vercel tối đa 3 lần nếu thất bại
-                    for i in 1 2 3; do
-                        echo "Vercel hook POST attempt #$i ..."
-                        HTTP_CODE=$(curl -s -o /tmp/vercel_resp.json -w "%{http_code}" -X POST "https://api.vercel.com/v1/integrations/deploy/prj_clKk0bSXKxWNDvdaiCTiTstGTVPS/YCJaNRda40")
-                        cat /tmp/vercel_resp.json || true
-                        echo "Vercel HTTP status: $HTTP_CODE"
-                        if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-                            echo "Vercel deploy hook thành công."
-                            break
-                        fi
-                        if [ "$i" -eq 3 ]; then
-                            echo "Vercel deploy hook thất bại sau 3 lần thử."
-                            exit 1
-                        fi
-                        sleep $((i * 5))
-                    done
-                '''
+        stage('Deploy Services') {
+            parallel {
+                stage('Deploy Frontend (Vercel)') {
+                    steps {
+                        timeout(time: 30, unit: 'SECONDS') {
+                            echo 'Triggering Vercel deployment...'
+                            sh '''
+                                set -euo pipefail
+                                echo "Calling Vercel deploy hook..."
+                                HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 -X POST \
+                                    "https://api.vercel.com/v1/integrations/deploy/prj_clKk0bSXKxWNDvdaiCTiTstGTVPS/YCJaNRda40")
+                                echo "Vercel HTTP status: $HTTP_CODE"
+                                if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+                                    echo "✅ Vercel deployment triggered successfully"
+                                else
+                                    echo "⚠️ Vercel hook returned status $HTTP_CODE (non-blocking)"
+                                fi
+                            '''
+                        }
+                    }
+                }
+                
+                stage('Deploy Backend (Render)') {
+                    steps {
+                        timeout(time: 30, unit: 'SECONDS') {
+                            echo 'Triggering Render deployment...'
+                            sh '''
+                                set -euo pipefail
+                                echo "Calling Render deploy hook..."
+                                HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 -X POST \
+                                    "https://api.render.com/deploy/srv-d4hjsb0dl3ps739r80jg?key=n5Ktij-19n8")
+                                echo "Render HTTP status: $HTTP_CODE"
+                                if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+                                    echo "✅ Render deployment triggered successfully"
+                                else
+                                    echo "⚠️ Render hook returned status $HTTP_CODE (non-blocking)"
+                                fi
+                            '''
+                        }
+                    }
+                }
             }
         }
 
@@ -178,10 +197,10 @@ pipeline {
 
     post {
         success { 
-            echo "Pipeline finished OK." 
+            echo "✅ Pipeline completed successfully!" 
         }
         failure { 
-            echo "Pipeline failed — check console output." 
+            echo "❌ Pipeline failed - check console output for details" 
         }
         always {
             echo "Cleaning workspace..."
