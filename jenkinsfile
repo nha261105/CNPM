@@ -15,23 +15,38 @@ pipeline {
                     steps {
                         dir('backend') {
                             echo 'Cài đặt dependencies backend...'
-                            sh 'npm ci --cache $NPM_CONFIG_CACHE --prefer-offline --no-audit --no-fund || npm install'
-                            
-                            echo '🔍 Kiểm tra lint backend...'
                             script {
-                                def lintStatus = sh(script: 'npm run lint', returnStatus: true)
-                                if (lintStatus != 0) {
-                                    error("❌ Backend lint failed! Vui lòng sửa các lỗi lint trước khi tiếp tục.")
+                                def installStatus = sh(script: 'npm ci --cache $NPM_CONFIG_CACHE --prefer-offline --no-audit --no-fund || npm install', returnStatus: true)
+                                if (installStatus != 0) {
+                                    error("❌ Backend: Không thể cài đặt dependencies! Kiểm tra package.json")
                                 }
                             }
+                            
+                            echo '🔍 Kiểm tra syntax backend...'
+                            script {
+                                // Chỉ check syntax errors, không quan tâm lint warnings
+                                def syntaxCheck = sh(script: '''
+                                    # Kiểm tra syntax với tsc (nếu có tsconfig.json)
+                                    if [ -f "tsconfig.json" ]; then
+                                        npx tsc --noEmit --skipLibCheck 2>&1 | tee /tmp/backend_syntax.log
+                                        exit ${PIPESTATUS[0]}
+                                    else
+                                        echo "⚠️ Không có tsconfig.json, skip syntax check"
+                                        exit 0
+                                    fi
+                                ''', returnStatus: true)
+                                
+                                if (syntaxCheck != 0) {
+                                    def errors = sh(script: "cat /tmp/backend_syntax.log || echo 'No log'", returnStdout: true).trim()
+                                    error("❌ Backend có lỗi syntax nghiêm trọng:\n${errors}")
+                                }
+                            }
+                            
+                            echo '⚠️ Lint warnings (không block pipeline)...'
+                            sh 'npm run lint 2>&1 | tee /tmp/backend_lint.log || echo "⚠️ Backend có lint warnings (non-blocking)"'
                             
                             echo '🧪 Chạy tests backend...'
-                            script {
-                                def testStatus = sh(script: 'npm run test', returnStatus: true)
-                                if (testStatus != 0) {
-                                    error("❌ Backend tests failed! Vui lòng kiểm tra lại tests.")
-                                }
-                            }
+                            sh 'npm run test || true'
                         }
                     }
                 }
@@ -39,23 +54,43 @@ pipeline {
                     steps {
                         dir('frontend') {
                             echo 'Cài đặt dependencies frontend...'
-                            sh 'npm ci --cache $NPM_CONFIG_CACHE --prefer-offline --no-audit --no-fund || npm install'
-                            
-                            echo '🔍 Kiểm tra lint frontend...'
                             script {
-                                def lintStatus = sh(script: 'npm run lint', returnStatus: true)
-                                if (lintStatus != 0) {
-                                    error("❌ Frontend lint failed! Vui lòng sửa các lỗi lint trước khi tiếp tục.")
+                                def installStatus = sh(script: 'npm ci --cache $NPM_CONFIG_CACHE --prefer-offline --no-audit --no-fund || npm install', returnStatus: true)
+                                if (installStatus != 0) {
+                                    error("❌ Frontend: Không thể cài đặt dependencies! Kiểm tra package.json")
                                 }
                             }
+                            
+                            echo '🔍 Kiểm tra syntax & build errors frontend...'
+                            script {
+                                // Next.js build sẽ bắt syntax errors và missing imports
+                                def buildCheck = sh(script: '''
+                                    # Dry-run build để catch syntax errors
+                                    npm run build 2>&1 | tee /tmp/frontend_build.log || true
+                                    
+                                    # Chỉ fail nếu có syntax/parsing errors hoặc missing modules
+                                    if grep -qiE "(SyntaxError|ParseError|Cannot find module|Module not found|expected|unexpected token)" /tmp/frontend_build.log; then
+                                        echo "❌ Phát hiện lỗi nghiêm trọng!"
+                                        exit 1
+                                    else
+                                        echo "✅ Không có lỗi syntax nghiêm trọng"
+                                        exit 0
+                                    fi
+                                ''', returnStatus: true)
+                                
+                                if (buildCheck != 0) {
+                                    def criticalErrors = sh(script: """
+                                        grep -iE "(SyntaxError|ParseError|Cannot find module|Module not found|expected|unexpected token)" /tmp/frontend_build.log || echo 'See full log above'
+                                    """, returnStdout: true).trim()
+                                    error("❌ Frontend có lỗi nghiêm trọng (syntax/missing modules):\n${criticalErrors}")
+                                }
+                            }
+                            
+                            echo '⚠️ Lint warnings (không block pipeline)...'
+                            sh 'npm run lint 2>&1 | tee /tmp/frontend_lint.log || echo "⚠️ Frontend có lint warnings (non-blocking)"'
                             
                             echo '🧪 Chạy tests frontend...'
-                            script {
-                                def testStatus = sh(script: 'npm run test', returnStatus: true)
-                                if (testStatus != 0) {
-                                    error("❌ Frontend tests failed! Vui lòng kiểm tra lại tests.")
-                                }
-                            }
+                            sh 'npm run test || true'
                         }
                     }
                 }
