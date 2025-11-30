@@ -1,55 +1,14 @@
 pipeline {
-        stage('Build & Test') {
-            parallel {
-                stage('Backend') {
-                    steps {
-                        dir('backend') {
-                            echo 'Cài đặt và kiểm tra backend (chỉ lint/test, cache node_modules)'
-                            sh '''
-                                npm ci --cache $NPM_CONFIG_CACHE --prefer-offline --no-audit --no-fund || npm install
-                                npm run lint || true
-                                npm run test || true
-                            '''
-                        }
-                    }
-                }
-                stage('Frontend') {
-                    steps {
-                        dir('frontend') {
-                            echo 'Cài đặt và kiểm tra frontend (chỉ lint/test, cache node_modules)'
-                            sh '''
-                                npm ci --cache $NPM_CONFIG_CACHE --prefer-offline --no-audit --no-fund || npm install
-                                npm run lint || true
-                                npm run test || true
-                            '''
-                        }
-                    }
-                }
-            }
-        }
-        //         sh '[ -x scripts/deploy-prod.sh ] || (echo "scripts/deploy-prod.sh is not executable!" && exit 1)'
-        //         sh '[ -f docker-compose.dev.yml ] || (echo "docker-compose.dev.yml missing!" && exit 1)'
-        //     // sh '[ -f docker-compose.prod.yml ] || (echo "docker-compose.prod.yml missing!" && exit 1)'
-        //         script {
-        //             try {
-        //                 withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-        //                     echo 'DockerHub credentials found.'
-        //                 }
-        //             } catch (e) {
-        //                 echo 'DockerHub credentials not configured (non-blocking if you do not push images).'
-        //             }
-        //         }
-        //         echo 'Environment check passed.'
-        //     }
-        // }
-
+    agent any
+    
+    stages {
         stage('Checkout') {
             steps {
                 checkout scm
                 echo "Branch: ${env.BRANCH_NAME ?: 'main'} | Build: ${env.BUILD_NUMBER} | ${env.BUILD_DATE}"
             }
         }
-
+        
         stage('Build & Test') {
             parallel {
                 stage('Backend') {
@@ -79,78 +38,77 @@ pipeline {
             }
         }
 
-    // stage('Code Quality Check') {
-    //     parallel {
-    //         stage('Lint Backend') {
-    //             steps {
-    //                 dir('backend') {
-    //                     sh 'npm run lint || echo "Backend linting issues found (non-blocking)"'
-    //                 }
-    //             }
-    //         }
-    //         stage('Lint Frontend') {
-    //             steps {
-    //                 dir('frontend') {
-    //                     sh 'npm run lint || echo "Frontend linting issues found (non-blocking)"'
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
+        // stage('Code Quality Check') {
+        //     parallel {
+        //         stage('Lint Backend') {
+        //             steps {
+        //                 dir('backend') {
+        //                     sh 'npm run lint || echo "Backend linting issues found (non-blocking)"'
+        //                 }
+        //             }
+        //         }
+        //         stage('Lint Frontend') {
+        //             steps {
+        //                 dir('frontend') {
+        //                     sh 'npm run lint || echo "Frontend linting issues found (non-blocking)"'
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
 
-    // stage('Security Scan') {
-    //     steps {
-    //         dir('backend') { sh 'npm audit --audit-level=high || true' }
-    //         dir('frontend') { sh 'npm audit --audit-level=high || true' }
-    //     }
-    // }
+        // stage('Security Scan') {
+        //     steps {
+        //         dir('backend') { sh 'npm audit --audit-level=high || true' }
+        //         dir('frontend') { sh 'npm audit --audit-level=high || true' }
+        //     }
+        // }
 
-    // stage('Build Docker Images') {
-    //     steps {
-    //         script {
-    //             parallel (
-    //                 "Backend Image": {
-    //                     sh '''
-    //                         echo "🏗️ Building backend Docker image..."
-    //                         docker build \
-    //                             --cache-from smartbus-backend:latest \
-    //                             --build-arg BUILDKIT_INLINE_CACHE=1 \
-    //                             -t smartbus-backend:latest \
-    //                             -t smartbus-backend:${BUILD_NUMBER} \
-    //                             -f backend/Dockerfile.dev ./backend
-    //                     '''
-    //                 },
-    //                 "Frontend Image": {
-    //                     sh '''
-    //                         echo "🏗️ Building frontend Docker image..."
-    //                         docker build \
-    //                             --cache-from smartbus-frontend:latest \
-    //                             --build-arg BUILDKIT_INLINE_CACHE=1 \
-    //                             -t smartbus-frontend:latest \
-    //                             -t smartbus-frontend:${BUILD_NUMBER} \
-    //                             -f frontend/Dockerfile.dev ./frontend
-    //                     '''
-    //                 }
-    //             )
-    //             echo "✅ All Docker images built successfully"
-    //         }
-    //     }
-    // }
+        // stage('Build Docker Images') {
+        //     steps {
+        //         script {
+        //             parallel (
+        //                 "Backend Image": {
+        //                     sh '''
+        //                         echo "🏗️ Building backend Docker image..."
+        //                         docker build \
+        //                             --cache-from smartbus-backend:latest \
+        //                             --build-arg BUILDKIT_INLINE_CACHE=1 \
+        //                             -t smartbus-backend:latest \
+        //                             -t smartbus-backend:${BUILD_NUMBER} \
+        //                             -f backend/Dockerfile.dev ./backend
+        //                     '''
+        //                 },
+        //                 "Frontend Image": {
+        //                     sh '''
+        //                         echo "🏗️ Building frontend Docker image..."
+        //                         docker build \
+        //                             --cache-from smartbus-frontend:latest \
+        //                             --build-arg BUILDKIT_INLINE_CACHE=1 \
+        //                             -t smartbus-frontend:latest \
+        //                             -t smartbus-frontend:${BUILD_NUMBER} \
+        //                             -f frontend/Dockerfile.dev ./frontend
+        //                     '''
+        //                 }
+        //             )
+        //             echo "✅ All Docker images built successfully"
+        //         }
+        //     }
+        // }
 
-    // stage('Push Docker Images') {
-    //     // Always run this stage
-    //     steps {
-    //         script {
-    //             withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-    //                 sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-    //                 sh 'docker tag smartbus-backend:latest $DOCKER_USER/smartbus-backend:latest'
-    //                 sh 'docker tag smartbus-frontend:latest $DOCKER_USER/smartbus-frontend:latest'
-    //                 sh 'docker push $DOCKER_USER/smartbus-backend:latest'
-    //                 sh 'docker push $DOCKER_USER/smartbus-frontend:latest'
-    //             }
-    //         }
-    //     }
-    // }
+        // stage('Push Docker Images') {
+        //     steps {
+        //         script {
+        //             withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+        //                 sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+        //                 sh 'docker tag smartbus-backend:latest $DOCKER_USER/smartbus-backend:latest'
+        //                 sh 'docker tag smartbus-frontend:latest $DOCKER_USER/smartbus-frontend:latest'
+        //                 sh 'docker push $DOCKER_USER/smartbus-backend:latest'
+        //                 sh 'docker push $DOCKER_USER/smartbus-frontend:latest'
+        //             }
+        //         }
+        //     }
+        // }
 
         // stage('Deploy to Development') {
         //     steps { 
@@ -164,7 +122,6 @@ pipeline {
         //                     echo "✅ Development deployment completed successfully!"
         //                 } catch (Exception e) {
         //                     echo "❌ Development deployment failed: ${e.getMessage()}"
-        //                     // Show container logs for debugging
         //                     sh 'docker compose -f docker-compose.dev.yml logs --tail=50 || true'
         //                     throw e
         //                 }
@@ -173,61 +130,62 @@ pipeline {
         //     }
         // }
 
-    // stage('Deploy to Staging') {
-    //     // Always run this stage
-    //     steps { sh 'bash scripts/deploy-staging.sh' }
-    // }
+        // stage('Deploy to Staging') {
+        //     steps { 
+        //         sh 'bash scripts/deploy-staging.sh' 
+        //     }
+        // }
 
-    stage('Deploy Frontend (Vercel)') {
-        // Always run this stage
-        steps {
-                        echo 'Bắt đầu gọi Vercel deploy hook...'
-                        sh '''
-set -euo pipefail
-# Gọi hook Vercel tối đa 3 lần nếu thất bại
-for i in 1 2 3; do
-    echo "Vercel hook POST attempt #$i ..."
-    HTTP_CODE=$(curl -s -o /tmp/vercel_resp.json -w "%{http_code}" -X POST "https://api.vercel.com/v1/integrations/deploy/prj_clKk0bSXKxWNDvdaiCTiTstGTVPS/YCJaNRda40")
-    cat /tmp/vercel_resp.json || true
-    echo "Vercel HTTP status: $HTTP_CODE"
-    if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-        echo "Vercel deploy hook thành công."
-        break
-    fi
-    if [ "$i" -eq 3 ]; then
-        echo "Vercel deploy hook thất bại sau 3 lần thử."
-        exit 1
-    fi
-    sleep $((i * 5))
-done
-'''
+        stage('Deploy Frontend (Vercel)') {
+            steps {
+                echo 'Bắt đầu gọi Vercel deploy hook...'
+                sh '''
+                    set -euo pipefail
+                    # Gọi hook Vercel tối đa 3 lần nếu thất bại
+                    for i in 1 2 3; do
+                        echo "Vercel hook POST attempt #$i ..."
+                        HTTP_CODE=$(curl -s -o /tmp/vercel_resp.json -w "%{http_code}" -X POST "https://api.vercel.com/v1/integrations/deploy/prj_clKk0bSXKxWNDvdaiCTiTstGTVPS/YCJaNRda40")
+                        cat /tmp/vercel_resp.json || true
+                        echo "Vercel HTTP status: $HTTP_CODE"
+                        if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+                            echo "Vercel deploy hook thành công."
+                            break
+                        fi
+                        if [ "$i" -eq 3 ]; then
+                            echo "Vercel deploy hook thất bại sau 3 lần thử."
+                            exit 1
+                        fi
+                        sleep $((i * 5))
+                    done
+                '''
+            }
         }
-    // }
 
-        // Các stage duyệt production và deploy production đã được comment lại để tối ưu tốc độ pipeline
-    // }
-
-    // stage('Smoke Tests') {
-    //     when { branch 'main' }
-    //     steps {
-    //         echo 'Running smoke tests...'
-    //         sh '''
-    //             sleep 10
-    //             # Customize these URLs for your real endpoints:
-    //             # curl -f http://localhost:3000/ || echo "FE not ready"
-    //             # curl -f https://your-backend.example.com/health || echo "BE not ready"
-    //             echo "Smoke tests skipped by default (customize Jenkinsfile)."
-    //         '''
-    //     }
-    // }
+        // stage('Smoke Tests') {
+        //     when { branch 'main' }
+        //     steps {
+        //         echo 'Running smoke tests...'
+        //         sh '''
+        //             sleep 10
+        //             # Customize these URLs for your real endpoints:
+        //             # curl -f http://localhost:3000/ || echo "FE not ready"
+        //             # curl -f https://your-backend.example.com/health || echo "BE not ready"
+        //             echo "Smoke tests skipped by default (customize Jenkinsfile)."
+        //         '''
+        //     }
+        // }
     }
 
     post {
-        success { echo "Pipeline finished OK." }
-        failure { echo "Pipeline failed — check console output." }
+        success { 
+            echo "Pipeline finished OK." 
+        }
+        failure { 
+            echo "Pipeline failed — check console output." 
+        }
         always {
             echo "Cleaning workspace..."
-        // cleanWs()  // Đã comment để tránh lỗi plugin không tồn tại
+            // cleanWs()  // Đã comment để tránh lỗi plugin không tồn tại
         }
     }
 }
