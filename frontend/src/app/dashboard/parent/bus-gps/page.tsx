@@ -4,10 +4,31 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import { Navigation, Clock, Phone, Send, CircleX } from "lucide-react";
+import { scheduleService, AdminScheduleWithStudents } from "@/api/schedule_admin";
 import { BusApi } from "@/api/busApi";
 import { StudentsApi } from "@/api/studentsApi";
 import { MessageApi } from "@/api/messageApi";
 import { storage } from "@/help/sessionStorage";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+
+const DriverMap = dynamic(() => import("@/components/map/DriverMap"), {
+  ssr: false,
+});
+
+interface Checkpoint {
+  id: number;
+  mark: string;
+  location: string;
+  time: string;
+  student: number;
+  lat?: number;
+  lng?: number;
+  student_id?: number;
+  parent_id?: number;
+  completed?: boolean;
+}
+
 
 // Emergency contacts (cứng, có thể lấy từ config sau)
 const emergencyContacts = [
@@ -71,7 +92,6 @@ export default function BusGp() {
   const [userParent, setUserParent] = useState<User>();
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   // ...existing code...
-
   useEffect(() => {
     const storedUser = storage.getUser()
     setUserParent(storedUser);
@@ -103,6 +123,113 @@ export default function BusGp() {
   }, [students, selectedStudent]);
 
   // ...existing code...
+  const [selectedSchedule, setSelectedSchedule] = useState<AdminScheduleWithStudents | null>(null);
+  const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
+  
+  const school_toado = { lat: 10.76006, lng: 106.68229 };
+  
+  //  Query schedules
+  const { data: schedules = [], isLoading: isLoadingSchedules } = useQuery({
+    queryKey: ["today-schedules"],
+    queryFn: () => scheduleService.getTodaySchedulesWithStudents(),
+    refetchInterval: 5000,
+    staleTime: 0,
+  });
+  
+  //  Build checkpoints khi chọn schedule (giống logic driver)
+  useEffect(() => {
+    if (!selectedSchedule || selectedSchedule.students.length === 0 || !selectedStudent) {
+      setCheckpoints([]);
+      return;
+    }
+
+    // setCheckpoints([startPoint, studentCheckpoint]);
+    const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+      const R = 6371000;
+      const dLat = ((lat2 - lat1) * Math.PI) / 180;
+      const dLng = ((lng2 - lng1) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos((lat1 * Math.PI) / 180) *
+          Math.cos((lat2 * Math.PI) / 180) *
+          Math.sin(dLng / 2) *
+          Math.sin(dLng / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    };
+
+    const startPoint: Checkpoint = {
+      id: 1,
+      mark: "Đại học Sài Gòn (Điểm xuất phát)",
+      location: "",
+      time: selectedSchedule.time,
+      student: 0,
+      lat: school_toado.lat,
+      lng: school_toado.lng,
+      completed: selectedSchedule.status === "in_progress" || selectedSchedule.status === "completed",
+    };
+
+    const studentCheckpoints: Checkpoint[] = selectedSchedule.students
+      .map((s: any) => {
+        const pp = s?.pickup_point;
+        if (!pp) return null;
+        return {
+          id: 0, // Sẽ gán lại sau khi sort
+          mark: s.student_name,
+          location: pp.description,
+          time: selectedSchedule.time,
+          student: 1,
+          lat: Number(pp.latitude),
+          lng: Number(pp.longitude),
+          student_id: s.student_id,
+          parent_id: s.parent_id,
+          completed: false,
+        };
+      })
+      .filter(Boolean) as Checkpoint[];
+
+    // Sort theo khoảng cách
+    const sortedStudentCheckpoints = [...studentCheckpoints].sort((a, b) => {
+      if (!a.lat || !a.lng || !b.lat || !b.lng) return 0;
+      const distA = calculateDistance(school_toado.lat, school_toado.lng, a.lat, a.lng);
+      const distB = calculateDistance(school_toado.lat, school_toado.lng, b.lat, b.lng);
+      return distA - distB;
+    });
+
+    sortedStudentCheckpoints.forEach((cp, index) => {
+      cp.id = index + 2;
+    });
+
+    const endPoint: Checkpoint = {
+      id: sortedStudentCheckpoints.length + 2,
+      mark: "Đại học Sài Gòn (Điểm kết thúc)",
+      location: "",
+      time: selectedSchedule.time,
+      student: 0,
+      lat: school_toado.lat,
+      lng: school_toado.lng,
+      completed: selectedSchedule.status === "completed",
+    };
+
+    setCheckpoints([startPoint, ...sortedStudentCheckpoints, endPoint]);
+    console.log("Selected schedule changed:", selectedSchedule);
+  }, [selectedSchedule]);
+
+  useEffect(() => {
+    let found = false;
+    schedules.forEach(schedule => {
+      // if(schedule.status === "in_progress" || schedule.status === "scheduled") {
+        schedule.students.forEach(student => {
+          if (selectedStudent && student.student_id === selectedStudent.student_id) {
+            setSelectedSchedule(schedule);
+            found = true;
+          }
+        });
+      // }
+    });
+    if (!found) setSelectedSchedule(null);
+    console.log("Schedules updated or selected student changed:", schedules, selectedStudent);
+  }, [selectedStudent, schedules]);
 
   if (isLoadingStudents)
     return <p className="text-lg text-gray-500">Đang tải...</p>;
@@ -111,6 +238,7 @@ export default function BusGp() {
       <p className="text-lg text-red-500">
         Lỗi:{" "}
         {typeof errorStudents === "object" && errorStudents !== null
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           ? (errorStudents as any).message
           : String(errorStudents)}
       </p>
@@ -218,9 +346,9 @@ export default function BusGp() {
         {/* Không còn status/ETA realtime, chỉ hiển thị thông tin bus của học sinh */}
       </div>
 
-      {/* Real-Time Bus Location ----------------------------------------------------------------------------- */}
+      {/* Pickup Point Location ----------------------------------------------------------------------------- */}
       <div className="w-full p-[20px_30px] bg-[#ffffff] rounded-xl border border-solid border-[#e5e5e5] flex flex-col gap-5">
-        <div className="text-lg">Real-Time Bus Location</div>
+        <div className="text-lg">Pickup Point</div>
         <div className="rounded-xl border border-dashed border-[#9e9d9d] bg-[#eff7fe]">
           <div className="w-full flex justify-center items-center p-4">
             <div className="w-full" style={{ minHeight: 600 }}>
@@ -239,7 +367,50 @@ export default function BusGp() {
           </div>
         </div>
       </div>
-      {/* ...existing code... */}
+
+      {/* Bản đồ realtime */}
+      <div className="w-full p-[20px_30px] bg-[#ffffff] rounded-xl border border-solid border-[#e5e5e5] flex flex-col gap-5">
+        <div className="text-lg">Realtime</div>
+        {selectedSchedule && (
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-xl">
+                  {selectedSchedule.bus_number} - {selectedSchedule.route_name}
+                </CardTitle>
+              </div>
+              <p className="text-sm text-gray-500">
+                Driver: {selectedSchedule.driver_name} | {selectedSchedule.schedule_date} - {selectedSchedule.time} |{" "}
+                <span
+                  className={`px-2 py-1 rounded text-xs font-medium ${
+                    selectedSchedule.status === "in_progress"
+                      ? "bg-green-100 text-green-700"
+                      : selectedSchedule.status === "completed"
+                      ? "bg-gray-100 text-gray-700"
+                      : "bg-orange-100 text-orange-700"
+                  }`}
+                >
+                  {selectedSchedule.status}
+                </span>
+              </p>
+            </CardHeader>
+            <CardContent>
+              {/*  Dùng chung DriverMap với driver */}
+              <DriverMap
+                checkpoints={checkpoints}
+                busId={selectedSchedule.bus_id}
+                isNavigating={selectedSchedule.status === "in_progress" }
+                adminMode={selectedSchedule.status === "in_progress" ? true : false}
+              />
+            </CardContent>
+          </Card>
+        )}
+        {
+          !selectedSchedule && (
+            <p className="text-lg text-gray-500">No active trip for the selected student.</p>
+          )
+        }
+      </div>
 
       {/* Emergency Contacts */}
       <div className="w-full bg-white rounded-xl p-5 border border-gray-200 flex flex-col gap-3 mt-6">
