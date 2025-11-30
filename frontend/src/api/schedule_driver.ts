@@ -12,6 +12,10 @@ export interface DriverSchedule {
   time: string;
   status: "scheduled" | "in_progress" | "completed";
   is_active: boolean;
+  is_navigation_allowed: boolean;
+  is_visible: boolean;
+  navigation_unlocked_at?: string | null;
+  manual_completed_at?: string | null;
 }
 
 export const driverScheduleService = {
@@ -26,9 +30,17 @@ export const driverScheduleService = {
     return res.data.data;
   },
 
- getTodaySchedule: async (driverId: number) => {
+  getTodaySchedule: async (driverId: number) => {
     const now = new Date();
     const localISODate = new Date().toLocaleDateString("en-CA");
     return driverScheduleService.getMySchedules(driverId, localISODate);
+  },
+
+  startSchedule: async (scheduleId: number) => {
+    await axiosClient.post(`/api/schedule/driver/${scheduleId}/start`);
+  },
+
+  completeSchedule: async (scheduleId: number) => {
+    await axiosClient.post(`/api/schedule/driver/${scheduleId}/complete`);
   },
 };

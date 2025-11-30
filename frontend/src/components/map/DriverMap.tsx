@@ -52,6 +52,7 @@ interface DriverMapProps {
   busId: number;
   isNavigating?: boolean;
   onCheckpointComplete?: (checkpointId: number, parentId?: number) => void;
+  adminMode?: boolean;
 }
 
 export default function DriverMap({
@@ -59,6 +60,7 @@ export default function DriverMap({
   busId,
   isNavigating = false,
   onCheckpointComplete,
+  adminMode = false,
 }: DriverMapProps) {
   const [route, setRoute] = useState<[number, number][]>([]);
   const [completedCheckpoints, setCompletedCheckpoints] = useState<Set<number>>(
@@ -200,7 +202,19 @@ export default function DriverMap({
       endpoint.lat &&
       endpoint.lng
     ) {
-      waypoints.push([endpoint.lat, endpoint.lng]);
+      const endpointAlreadyInRoute = waypoints.some(
+        (wp) => wp[0] === endpoint.lat && wp[1] === endpoint.lng
+      );
+      if (!endpointAlreadyInRoute) {
+        waypoints.push([endpoint.lat, endpoint.lng]);
+        console.log(
+          `Đã thêm endpoint vào route: ${endpoint.mark} (${endpoint.lat}, ${endpoint.lng})`
+        );
+      }
+    } else {
+      console.log(
+        `Endpoint chưa được thêm vào route. allStudentCompleted: ${allStudentCheckpointsCompleted}, endpoint: ${!!endpoint}`
+      );
     }
 
     if (waypoints.length < 2) {
@@ -241,7 +255,7 @@ export default function DriverMap({
       const p1 = route[i];
       const p2 = route[i + 1];
 
-      for (let t = 0; t <= 1; t += 0.1) {
+      for (let t = 0; t <= 1; t += 0.25) {
         const lat = p1[0] + (p2[0] - p1[0]) * t;
         const lng = p1[1] + (p2[1] - p1[1]) * t;
         const dist = calculateDistance(
@@ -293,14 +307,31 @@ export default function DriverMap({
         }, t=${nearest.t.toFixed(2)}, distance=${dist.toFixed(2)}m`
       );
 
-      if (dist < 1000) {
+      if (dist < 100) {
         simulationRef.current.currentIndex = nearest.index;
         simulationRef.current.t = nearest.t;
+        console.log(
+          `Đã cập nhật vị trí simulation: index=${
+            nearest.index
+          }, t=${nearest.t.toFixed(2)}`
+        );
       } else {
         console.warn(
           `Distance too far (${dist.toFixed(2)}m), keeping current position`
         );
       }
+    }
+
+    // Log route info
+    if (route.length > 0) {
+      const endpointInRoute = route[route.length - 1];
+      console.log(
+        `Route hiện tại có ${
+          route.length
+        } điểm. Điểm cuối: [${endpointInRoute[0].toFixed(
+          6
+        )}, ${endpointInRoute[1].toFixed(6)}]`
+      );
     }
 
     prevRouteRef.current = route;
@@ -345,6 +376,14 @@ export default function DriverMap({
       const { currentIndex, t, lastUpdatePosFromBackend } =
         simulationRef.current;
       if (currentIndex >= route.length - 1) {
+        console.log(
+          `Xe đã đến cuối route (index ${currentIndex}/${
+            route.length - 1
+          }). Route có ${route.length} điểm.`
+        );
+        // Đảm bảo xe dừng ở điểm cuối cùng (endpoint)
+        const finalPoint = route[route.length - 1];
+        setSimPos({ lat: finalPoint[0], lng: finalPoint[1] });
         clearInterval(interval);
         return;
       }
@@ -375,7 +414,7 @@ export default function DriverMap({
         }
       }
 
-      let newT = t + 0.2;
+      let newT = t + 0.5;
       let newIndex = currentIndex;
       if (newT >= 1) {
         newT = 0;
@@ -383,7 +422,7 @@ export default function DriverMap({
       }
       simulationRef.current.t = newT;
       simulationRef.current.currentIndex = newIndex;
-    }, 10);
+    }, 40);
 
     return () => {
       clearInterval(interval);
@@ -392,7 +431,7 @@ export default function DriverMap({
 
   useEffect(() => {
     const currentPos =
-      isNavigating && simPos
+      isNavigating && simPos && !adminMode
         ? simPos
         : realtimePos
         ? { lat: realtimePos.latitude, lng: realtimePos.longitude }
@@ -401,6 +440,12 @@ export default function DriverMap({
     if (!currentPos) return;
 
     const checkDistance = () => {
+      if (checkpoints.length > 0 && checkpoints.length % 10 === 0) {
+        console.log(
+          `checkDistance được gọi. Checkpoints: ${checkpoints.length}, maxId: ${maxId}`
+        );
+      }
+
       const studentCheckpoints = checkpoints.filter(
         (cp) => cp.student_id && cp.id !== 1 && cp.id !== maxId
       );
@@ -410,11 +455,38 @@ export default function DriverMap({
           (cp) => cp.completed || completedCheckpoints.has(cp.id)
         );
 
+      const endpoint = checkpoints.find((cp) => cp.id === maxId);
+      if (endpoint) {
+        if (allStudentCheckpointsCompleted) {
+          console.log(
+            `[ENDPOINT READY] ${endpoint.mark} (id: ${
+              endpoint.id
+            }), completed: ${
+              endpoint.completed || completedCheckpoints.has(endpoint.id)
+            }, lat/lng: ${endpoint.lat}/${endpoint.lng}`
+          );
+        } else {
+          const completedCount = studentCheckpoints.filter(
+            (cp) => cp.completed || completedCheckpoints.has(cp.id)
+          ).length;
+          console.log(
+            `[ENDPOINT WAITING] ${endpoint.mark}. Students completed: ${completedCount}/${studentCheckpoints.length}`
+          );
+        }
+      } else {
+        console.warn(
+          `[ENDPOINT NOT FOUND] maxId: ${maxId}, checkpoints:`,
+          checkpoints.map((cp) => ({ id: cp.id, mark: cp.mark }))
+        );
+      }
+
       checkpoints.forEach((checkpoint) => {
+        // Skip endpoint nếu chưa hoàn thành tất cả student checkpoints
         if (checkpoint.id === maxId && !allStudentCheckpointsCompleted) {
           return;
         }
 
+        // Skip nếu đã completed hoặc thiếu tọa độ
         if (
           checkpoint.completed ||
           completedCheckpoints.has(checkpoint.id) ||
@@ -431,19 +503,44 @@ export default function DriverMap({
           checkpoint.lng
         );
 
-        if (dist <= 2000) {
+        // Log cho endpoint để debug - LUÔN log endpoint distance
+        if (checkpoint.id === maxId) {
           console.log(
-            `Xe gần checkpoint ${checkpoint.mark}: ${dist.toFixed(2)}m`
+            `[ENDPOINT DISTANCE] ${checkpoint.mark}: ${dist.toFixed(
+              2
+            )}m (threshold: 200m)`
           );
         }
 
-        if (dist <= 1000) {
-          if (!completedCheckpoints.has(checkpoint.id)) {
+        if (dist <= 200) {
+          if (checkpoint.id === maxId) {
             console.log(
-              `Đánh dấu hoàn thành checkpoint: ${checkpoint.mark} (id: ${
-                checkpoint.id
-              }) - Khoảng cách: ${dist.toFixed(2)}m`
+              `[ENDPOINT NEAR] ${checkpoint.mark}: ${dist.toFixed(
+                2
+              )}m - Đang kiểm tra completed...`
             );
+          } else {
+            console.log(
+              `Xe gần checkpoint ${checkpoint.mark}: ${dist.toFixed(2)}m`
+            );
+          }
+        }
+
+        if (dist <= 200 && !adminMode) {
+          if (!completedCheckpoints.has(checkpoint.id)) {
+            if (checkpoint.id === maxId) {
+              console.log(
+                `[ENDPOINT COMPLETED] ${checkpoint.mark} (id: ${
+                  checkpoint.id
+                }) - Khoảng cách: ${dist.toFixed(2)}m`
+              );
+            } else {
+              console.log(
+                `Đánh dấu hoàn thành checkpoint: ${checkpoint.mark} (id: ${
+                  checkpoint.id
+                }) - Khoảng cách: ${dist.toFixed(2)}m`
+              );
+            }
             setCompletedCheckpoints((prev) => {
               const newSet = new Set(prev);
               newSet.add(checkpoint.id);
@@ -477,6 +574,7 @@ export default function DriverMap({
     completedCheckpoints,
     onCheckpointComplete,
     maxId,
+    adminMode,
   ]);
 
   useEffect(() => {
@@ -489,6 +587,8 @@ export default function DriverMap({
   // const sendNotificationToParent = async();
 
   const busCurrentPos =
+    adminMode ? realtimePos ? 
+    {lat: realtimePos.latitude, lng: realtimePos.longitude} : {lat: SCHOOL[0], lng: SCHOOL[1]} :
     isNavigating && simPos
       ? simPos
       : realtimePos

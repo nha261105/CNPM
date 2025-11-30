@@ -1,6 +1,7 @@
 import axiosClient from "@/lib/axiosClient";
 
 export interface Schedule {
+  schedule_id: number;
   schedule_key: string;
   schedule_date: string;
   time: string;

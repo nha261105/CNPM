@@ -1,6 +1,6 @@
 "use client";
 import dynamic from "next/dynamic";
-import { Navigation, TriangleAlert,Loader2 } from "lucide-react";
+import { Navigation, TriangleAlert, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -9,16 +9,19 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 const DriverMap = dynamic(() => import("@/components/map/DriverMap"), {
   ssr: false,
 });
 import { Progress } from "@/components/ui/progress";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import CheckpointsCard from "./CheckpointsCard";
 import { useAuth } from "@/hooks/useAuth";
 import { driverScheduleService, DriverSchedule } from "@/api/schedule_driver";
 import { useQuery } from "@tanstack/react-query";
 import axiosClient from "@/lib/axiosClient";
+import { toast } from "sonner";
+import { MessageApi } from "@/api/messageApi";
 interface Checkpoint {
   id: number;
   mark: string;
@@ -35,23 +38,40 @@ export default function ManagerMySchedule() {
   const VEHICLE_CHECK_KEY = "vehicle_check_completed";
   const { user } = useAuth();
   const [vehicleCheckCompleted, setVehicleCheckCompleted] = useState(false);
-  const [selectedSchedule, setSelectedSchedule] =
-    useState<DriverSchedule | null>(null);
+  const [selectedScheduleKey, setSelectedScheduleKey] = useState<string | null>(
+    null
+  );
   const [isNavigating, setIsNavigating] = useState(false);
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
   const [openEmergency, setOpenEmergency] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [totalStudents, setTotalStudents] = useState(0);
   const [progressUpdated, setProgressUpdated] = useState(false);
-  const { data: schedules = [], isLoading: schedulesLoading } = useQuery({
+  const [navigationActionLoading, setNavigationActionLoading] = useState(false);
+  const {
+    data: schedules = [],
+    isLoading: schedulesLoading,
+    refetch: refetchSchedules,
+  } = useQuery({
     queryKey: ["driver-schedules", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      return driverScheduleService.getTodaySchedule(Number(user.id));
+      const data = await driverScheduleService.getTodaySchedule(
+        Number(user.id)
+      );
+      console.log("thong tin lich trinh", data);
+      return data;
     },
     enabled: !!user?.id,
-    refetchInterval: 30000,
+    refetchInterval: 5000,
+    staleTime: 0,
+    gcTime: 0,
   });
+  const visibleSchedules = useMemo(
+    () => schedules.filter((s) => s.is_visible),
+    [schedules]
+  );
+  const schedulePool = visibleSchedules;
   useEffect(() => {
     const CheckVehicleStatus = () => {
       const saved = localStorage.getItem(VEHICLE_CHECK_KEY);
@@ -86,40 +106,64 @@ export default function ManagerMySchedule() {
     return R * c;
   };
   useEffect(() => {
-    if (schedules.length > 0 && !selectedSchedule) {
-      const activeSchedule = schedules.find((s) => s.status === "in_progress");
-      setSelectedSchedule(activeSchedule || schedules[0]);
+    if (schedulePool.length === 0) {
+      setSelectedScheduleKey(null);
+      return;
     }
-  }, [schedules, selectedSchedule]);
+
+    if (!selectedScheduleKey) {
+      const activeSchedule =
+        schedulePool.find((s) => s.status === "in_progress") || schedulePool[0];
+      setSelectedScheduleKey(activeSchedule.schedule_key);
+      return;
+    }
+
+    const stillExists = schedulePool.some(
+      (s) => s.schedule_key === selectedScheduleKey
+    );
+    if (!stillExists) {
+      setSelectedScheduleKey(schedulePool[0].schedule_key);
+    }
+  }, [schedulePool, selectedScheduleKey]);
+
+  const currentSchedule = useMemo(() => {
+    if (schedulePool.length === 0) return null;
+    if (selectedScheduleKey) {
+      const found = schedulePool.find(
+        (s) => s.schedule_key === selectedScheduleKey
+      );
+      if (found) return found;
+    }
+    return schedulePool[0];
+  }, [schedulePool, selectedScheduleKey]);
 
   useEffect(() => {
-    if (selectedSchedule) {
+    if (currentSchedule) {
       setIsNavigating(false);
       setSelectedId(null);
       setCheckpoints([]);
     }
-  }, [selectedSchedule?.schedule_key]);
+  }, [currentSchedule?.schedule_key]);
   const { data: students = [], isLoading: studentsLoading } = useQuery({
-    queryKey: ["schedule-students", selectedSchedule?.bus_id],
+    queryKey: ["schedule-students", currentSchedule?.bus_id],
     queryFn: async () => {
-      if (!selectedSchedule?.bus_id) return [];
+      if (!currentSchedule?.bus_id) return [];
       const res = await axiosClient.get(
-        `/api/admin/realtime/${selectedSchedule.bus_id}/students`
+        `/api/admin/realtime/${currentSchedule.bus_id}/students`
       );
       return res?.data?.data ?? [];
     },
-    enabled: !!selectedSchedule?.bus_id,
+    enabled: !!currentSchedule?.bus_id,
   });
   useEffect(() => {
-    if (students.length === 0 || !selectedSchedule) {
-      // setCheckpoints([]);
+    if (students.length === 0 || !currentSchedule) {
       return;
     }
     const startPoint: Checkpoint = {
       id: 1,
       mark: "Đại học sài gòn (Điểm xuất phát)",
       location: "",
-      time: selectedSchedule.time,
+      time: currentSchedule.time,
       student: 0,
       lat: school_toado.lat,
       lng: school_toado.lng,
@@ -133,7 +177,7 @@ export default function ManagerMySchedule() {
           id: index + 2,
           mark: s?.student_name,
           location: pp.description,
-          time: selectedSchedule.time,
+          time: currentSchedule.time,
           student: 1,
           lat: Number(pp.latitude),
           lng: Number(pp.longitude),
@@ -168,14 +212,43 @@ export default function ManagerMySchedule() {
       location: "",
       lat: school_toado.lat,
       lng: school_toado.lng,
-      time: selectedSchedule.time,
+      time: currentSchedule.time,
       student: 0,
+      completed: false,
     };
     setCheckpoints([startPoint, ...sortedStudentCheckpoints, endPoint]);
     setTotalStudents(students.length);
-  }, [students, selectedSchedule]);
+  }, [students, currentSchedule]);
 
-  const handleCheckpointComplete = (checkpointId: number) => {
+  const completeCurrentSchedule = async () => {
+    if (!currentSchedule || completionTriggeredRef.current) return;
+    completionTriggeredRef.current = true;
+    try {
+      await driverScheduleService.completeSchedule(currentSchedule.schedule_id);
+      await refetchSchedules();
+      setIsNavigating(false);
+      setSelectedId(null);
+
+      toast.success("Đã hoàn thành chuyến đi", {
+        description: `Chuyến đi ${
+          currentSchedule.route_name || `Route ${currentSchedule.route_id}`
+        } đã được hoàn tất thành công.`,
+        duration: 5000,
+      });
+    } catch (error) {
+      console.error("Không thể hoàn tất chuyến đi", error);
+      completionTriggeredRef.current = false;
+      toast.error("Lỗi", {
+        description: "Không thể hoàn tất chuyến đi. Vui lòng thử lại.",
+      });
+    }
+  };
+
+  const handleCheckpointComplete = async (
+    checkpointId: number,
+    parent_id?: number
+  ) => {
+    let allCompleted = false;
     setCheckpoints((prev) => {
       const updated = prev.map((cp) =>
         cp.id === checkpointId
@@ -185,14 +258,135 @@ export default function ManagerMySchedule() {
             }
           : cp
       );
+
+      let endpoint = updated.find(
+        (cp) =>
+          cp.mark.includes("Điểm kết thúc") || cp.mark.includes("kết thúc")
+      );
+      if (!endpoint) {
+        const maxId = Math.max(...updated.map((cp) => cp.id));
+        endpoint = updated.find(
+          (cp) => cp.id === maxId && cp.student === 0 && cp.id !== 1
+        );
+        if (endpoint) {
+          console.log(`maxId: ${endpoint.id} - "${endpoint.mark}"`);
+        }
+      }
+
+      const startpoint = updated.find((cp) => cp.id === 1);
+      const studentCheckpoints = updated.filter(
+        (cp) => cp.student_id && cp.id !== 1 && cp.id !== endpoint?.id
+      );
+
       const completedCount = updated.filter((cp) => cp.completed).length;
+      const totalCount = updated.length;
+      const allStudentsCompleted = studentCheckpoints.every(
+        (cp) => cp.completed
+      );
+
+      if (!endpoint) {
+        // khong phai diem cuoi cung thi chua the complete
+        allCompleted = false;
+      } else {
+        // endpoint -> complete
+        const endpointCompleted = endpoint.completed === true;
+
+        if (!endpointCompleted) {
+          allCompleted = false;
+        } else {
+          // kiem tra them di duoc tat ca cac point chua
+          const allCheckpointsCompleted = updated.every((cp) => {
+            const isCompleted = cp.completed === true;
+            return isCompleted;
+          });
+
+          allCompleted = endpointCompleted && allCheckpointsCompleted;
+
+          if (allCompleted) {
+            console.log(
+              "[ALL COMPLETED] Tất cả checkpoints đã hoàn thành, bao gồm endpoint!"
+            );
+          } else {
+            console.log(
+              `[NOT READY] Endpoint: ${
+                endpointCompleted ? "ok" : "khong ok"
+              }, All checkpoints: ${
+                allCheckpointsCompleted ? "ok" : "khong ok"
+              }`
+            );
+          }
+        }
+      }
+
       return updated;
     });
+    if (parent_id && currentSchedule) {
+      const checkpoint = checkpoints.find((cp) => cp.id === checkpointId);
+      if (
+        parent_id &&
+        currentSchedule &&
+        checkpoint &&
+        checkpoint.student_id &&
+        checkpoint.mark
+      ) {
+        try {
+          await MessageApi.sendMessageToParentByDriver(
+            currentSchedule.driver_id,
+            parent_id,
+            checkpoint.mark
+          );
+          toast.success(
+            `Đã gửi thông báo đến cho phụ huynh ${checkpoint.mark}`
+          );
+        } catch (error) {}
+      }
+    }
 
     setProgressUpdated(true);
     setTimeout(() => {
       setProgressUpdated(false);
     }, 600);
+    if (allCompleted) {
+      console.log(
+        "[SCHEDULE COMPLETE] Tất cả checkpoints đã hoàn thành, bao gồm endpoint, đang kết thúc chuyến đi..."
+      );
+      completeCurrentSchedule();
+    } else {
+      console.log(
+        "[CONTINUE] Vẫn còn checkpoints chưa hoàn thành, tiếp tục..."
+      );
+    }
+  };
+
+  const handleNavigationToggle = async () => {
+    if (!currentSchedule) return;
+    if (!vehicleCheckCompleted) {
+      alert("Vui lòng kiểm tra xe trước khi tiến hành chạy");
+      return;
+    }
+
+    if (!isNavigating) {
+      setNavigationActionLoading(true);
+      try {
+        await driverScheduleService.startSchedule(currentSchedule.schedule_id);
+        navigationUnlockedRef.current = true;
+        await refetchSchedules();
+        const startpoint = checkpoints.find((cp) => cp.id === 1);
+        if (startpoint) {
+          setSelectedId(startpoint.id);
+        }
+        setIsNavigating(true);
+      } catch (error) {
+        console.error("Không thể bắt đầu chuyến đi", error);
+        alert("Không thể bắt đầu chuyến đi, vui lòng thử lại.");
+      } finally {
+        setNavigationActionLoading(false);
+      }
+      return;
+    }
+
+    setIsNavigating(false);
+    setSelectedId(null);
   };
 
   const progress = useMemo(() => {
@@ -208,6 +402,75 @@ export default function ManagerMySchedule() {
   const completedStops = useMemo(() => {
     return checkpoints.filter((cp) => cp.completed).length;
   }, [checkpoints]);
+  const navigationDisabled =
+    !currentSchedule?.is_navigation_allowed ||
+    currentSchedule?.status === "completed";
+  const startTimeTimeoutRef = useRef<number | null>(null);
+  const navigationUnlockedRef = useRef(false);
+  const completionTriggeredRef = useRef(false);
+
+  useEffect(() => {
+    if (!currentSchedule) {
+      navigationUnlockedRef.current = false;
+      completionTriggeredRef.current = false;
+      return;
+    }
+    navigationUnlockedRef.current = !!currentSchedule.navigation_unlocked_at;
+    completionTriggeredRef.current = !!currentSchedule.manual_completed_at;
+  }, [
+    currentSchedule?.schedule_key,
+    currentSchedule?.navigation_unlocked_at,
+    currentSchedule?.manual_completed_at,
+  ]);
+  useEffect(() => {
+    const timeoutId = startTimeTimeoutRef.current;
+    if (timeoutId) {
+      window.clearTimeout(timeoutId);
+      startTimeTimeoutRef.current = null;
+    }
+    if (!currentSchedule) return;
+
+    if (currentSchedule.is_navigation_allowed) {
+      navigationUnlockedRef.current = true;
+    }
+
+    const normalizedTime = currentSchedule.time.includes(":")
+      ? currentSchedule.time.split(":").length === 2
+        ? `${currentSchedule.time}:00`
+        : currentSchedule.time
+      : `${currentSchedule.time}:00`;
+    const scheduleStartDateTime = new Date(
+      `${currentSchedule.schedule_date}T${normalizedTime}`
+    );
+    if (navigationUnlockedRef.current) {
+      return;
+    }
+
+    const diff = scheduleStartDateTime.getTime() - Date.now();
+
+    if (currentSchedule.status !== "scheduled") {
+      return;
+    }
+
+    if (diff <= 0) {
+      refetchSchedules();
+      navigationUnlockedRef.current = true;
+      return;
+    }
+
+    const id = window.setTimeout(() => {
+      refetchSchedules();
+      navigationUnlockedRef.current = true;
+      startTimeTimeoutRef.current = null;
+    }, diff);
+    startTimeTimeoutRef.current = id;
+  }, [
+    currentSchedule?.schedule_key,
+    currentSchedule?.status,
+    currentSchedule?.schedule_date,
+    currentSchedule?.time,
+    refetchSchedules,
+  ]);
   if (schedulesLoading) {
     return (
       <section className="flex-1 overflow-y-auto p-8 bg-gray-50 flex items-center justify-center">
@@ -215,7 +478,7 @@ export default function ManagerMySchedule() {
       </section>
     );
   }
-  if (schedules.length === 0) {
+  if (schedulePool.length === 0) {
     return (
       <section className="flex-1 overflow-y-auto p-8 bg-gray-50">
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-8 text-center">
@@ -226,12 +489,21 @@ export default function ManagerMySchedule() {
       </section>
     );
   }
-  const currentSchedule = selectedSchedule || schedules[0];
+  if (!currentSchedule) {
+    return null;
+  }
+
+  const navigationLabel =
+    currentSchedule?.status === "completed"
+      ? "Đã hoàn thành"
+      : currentSchedule?.status === "in_progress"
+      ? "Đang chạy"
+      : "Chờ khởi hành";
 
   return (
     <section className="flex-1 overflow-y-auto p-8 bg-gray-50">
       <div className="space-y-6">
-        {schedules.length > 1 && (
+        {schedulePool.length > 1 && currentSchedule && (
           <div className="bg-white border border-gray-200 rounded-xl p-4">
             <label className="text-sm font-medium mb-2 block">
               Chọn lịch trình:
@@ -239,18 +511,13 @@ export default function ManagerMySchedule() {
             <select
               value={currentSchedule.schedule_key}
               onChange={(e) => {
-                const schedule = schedules.find(
-                  (s) => s.schedule_key === e.target.value
-                );
-                if (schedule) {
-                  setSelectedSchedule(schedule);
-                  setIsNavigating(false);
-                  setSelectedId(null);
-                }
+                setSelectedScheduleKey(e.target.value);
+                setIsNavigating(false);
+                setSelectedId(null);
               }}
               className="w-full p-2 border border-gray-300 rounded-lg"
             >
-              {schedules.map((schedule) => (
+              {schedulePool.map((schedule) => (
                 <option
                   key={schedule.schedule_key}
                   value={schedule.schedule_key}
@@ -308,6 +575,18 @@ export default function ManagerMySchedule() {
               <div className="flex flex-col">
                 <p className="font-normal text-lg text-gray-700">Time</p>
                 <p className="font-normal text-xl">{currentSchedule.time}</p>
+                <Badge
+                  variant={
+                    currentSchedule.status === "in_progress"
+                      ? "default"
+                      : currentSchedule.status === "completed"
+                      ? "secondary"
+                      : "outline"
+                  }
+                  className="mt-2 w-fit"
+                >
+                  {/* {navigationLabel} */}
+                </Badge>
               </div>
               <div className="flex flex-col">
                 <p className="font-normal text-lg text-gray-700">Students</p>
@@ -318,28 +597,30 @@ export default function ManagerMySchedule() {
             </div>
             <div className="flex flex-start gap-4 mt-4">
               <button
-                onClick={() => {
-                  if (!vehicleCheckCompleted) {
-                    alert("vui lòng kiểm tra xe trước khi tiến hành chạy");
-                    return;
-                  }
-                  if (!isNavigating) {
-                    const startpoint = checkpoints.find((cp) => cp.id === 1);
-                    if (startpoint) {
-                      setSelectedId(startpoint.id);
-                    }
-                  }
-                  setIsNavigating(!isNavigating);
-                }}
+                onClick={handleNavigationToggle}
+                disabled={navigationDisabled || navigationActionLoading}
                 className={`rounded-lg px-3 py-2 flex flex-row gap-3 items-center cursor-pointer ${
-                  isNavigating ? "bg-red-600" : "bg-green-600"
+                  navigationDisabled || navigationActionLoading
+                    ? "bg-gray-300 cursor-not-allowed"
+                    : isNavigating
+                    ? "bg-red-600"
+                    : "bg-green-600"
                 }`}
               >
                 <Navigation size={20} color="white" strokeWidth={2.5} />
                 <p className="font-semibold text-md text-white">
-                  {isNavigating ? "Stop Navigation" : "Start Navigation"}
+                  {navigationActionLoading
+                    ? "Đang xử lý..."
+                    : isNavigating
+                    ? "Stop Navigation"
+                    : "Start Navigation"}
                 </p>
               </button>
+              {navigationDisabled && (
+                <p className="text-sm text-muted-foreground max-w-xs">
+                  Chức năng điều hướng sẽ bật khi đến giờ khởi hành của chuyến.
+                </p>
+              )}
               <button
                 onClick={() => setOpenEmergency(true)}
                 className="bg-red-700 rounded-lg px-3 py-2 flex flex-row gap-3 items-center cursor-pointer"
@@ -388,7 +669,7 @@ export default function ManagerMySchedule() {
             <p className="text-xl font-medium">Route Map</p>
             <DriverMap
               checkpoints={checkpoints}
-              busId={selectedSchedule?.bus_id || 0}
+              busId={currentSchedule?.bus_id || 0}
               isNavigating={isNavigating}
               onCheckpointComplete={handleCheckpointComplete}
             />

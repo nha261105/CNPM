@@ -42,7 +42,7 @@ function MapController({
     <div className="absolute bottom-4 right-4 z-[999]">
       <button
         className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-gray-100 active:scale-95 transition-transform"
-        onClick={() => map.flyTo([currLatitude, currLongitude], 16)}
+        onClick={() => map.flyTo([currLatitude, currLongitude], map.getZoom())}
       >
         <LocateFixed className="w-6 h-6 text-blue-600" />
       </button>
