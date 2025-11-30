@@ -28,6 +28,7 @@ interface Checkpoint {
 export default function RealTimeMap() {
   const [selectedSchedule, setSelectedSchedule] = useState<AdminScheduleWithStudents | null>(null);
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
+  console.log("test deploy")
 
   const school_toado = { lat: 10.76006, lng: 106.68229 };
 
