@@ -24,12 +24,10 @@ pipeline {
                             
                             echo '🔍 Kiểm tra syntax backend...'
                             script {
-                                // Chỉ check syntax errors, không quan tâm lint warnings
+                                // FIX: Không dùng ${PIPESTATUS[0]}, dùng returnStatus thay thế
                                 def syntaxCheck = sh(script: '''
-                                    # Kiểm tra syntax với tsc (nếu có tsconfig.json)
                                     if [ -f "tsconfig.json" ]; then
                                         npx tsc --noEmit --skipLibCheck 2>&1 | tee /tmp/backend_syntax.log
-                                        exit ${PIPESTATUS[0]}
                                     else
                                         echo "⚠️ Không có tsconfig.json, skip syntax check"
                                         exit 0
