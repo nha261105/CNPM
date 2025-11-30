@@ -368,9 +368,9 @@ export default function DriverMap({
       return;
     }
 
-    let currentIndex = 0;
-    let t = 0;
-    let lastUpdatePosFromBackend = Date.now();
+    const currentIndex = 0;
+    const t = 0;
+    const lastUpdatePosFromBackend = Date.now();
 
     const interval = setInterval(async () => {
       const { currentIndex, t, lastUpdatePosFromBackend } =
